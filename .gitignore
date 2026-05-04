@@ -1,0 +1,28 @@
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+.env
+.env.local
+.pytest_cache/
+.ruff_cache/
+node_modules/
+dist/
+build/
+*.log
+
+# SQLite + live config — the Add-on writes these to /data on the Pi anyway.
+loft_climate/backend/data/climate.db
+loft_climate/backend/data/climate.db-wal
+loft_climate/backend/data/climate.db-shm
+loft_climate/backend/data/config.json
+
+.coverage
+coverage/
+playwright-report/
+test-results/
+.DS_Store
+
+# Plan file lives in the user's local Claude state, not the project.
+.claude/plans/
+.claude/cache/

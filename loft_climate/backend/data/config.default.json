@@ -1,0 +1,31 @@
+{
+  "version": 1,
+  "location": {
+    "latitude": 51.5321,
+    "longitude": -0.0925,
+    "timezone": "Europe/London",
+    "facing_azimuth_deg": 225
+  },
+  "zones": {
+    "mezzanine":    {"comfort_min": 19.0, "comfort_max": 24.0, "blind_group": "mezz"},
+    "downstairs":   {"comfort_min": 19.0, "comfort_max": 24.0, "blind_group": "downstairs"},
+    "ceiling_apex": {"comfort_min": 19.0, "comfort_max": 26.0, "blind_group": null, "stack_vent_delta_c": 4.0},
+    "bedroom":      {"comfort_min": 18.0, "comfort_max": 22.0, "blind_group": "bedroom", "bedtime_target_c": 21.0, "bedtime_prep_minutes": 60}
+  },
+  "blind_groups": ["mezz", "downstairs", "bedroom"],
+  "schedule": {"bedtime_local": "22:00", "wake_local": "07:00"},
+  "thermal":  {"outdoor_hot_c": 22.0, "outdoor_cold_c": 12.0, "feels_like_weight": 1.0},
+  "sky":      {"sunny_max_cloud_pct": 30, "cloudy_min_cloud_pct": 70},
+  "wind":     {"still_max_mps": 1.5, "breeze_min_mps": 2.5},
+  "sun_on_sw": {
+    "azimuth_min_deg": 135,
+    "azimuth_max_deg": 270,
+    "elevation_min_deg": 10,
+    "lux_indoor_direct_threshold": 8000,
+    "lux_indoor_diffuse_threshold": 2000
+  },
+  "weather": {"fetch_interval_seconds": 600, "stale_after_seconds": 1800},
+  "air":     {"suppress_purge_aqi_above": 3},
+  "engine":  {"tie_breaker": "no_change", "log_recommendations": true, "dwell_minutes": 20, "stale_after_minutes": 90},
+  "solar":   {"uvi_high": 6, "uvi_moderate": 3}
+}

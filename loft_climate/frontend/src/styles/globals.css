@@ -1,0 +1,47 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: dark;
+}
+
+html, body, #root {
+  min-height: 100vh;
+}
+
+body {
+  margin: 0;
+  font-family: -apple-system, BlinkMacSystemFont, "Inter", "Segoe UI", system-ui,
+    sans-serif;
+  background: linear-gradient(160deg, #020617 0%, #0f172a 35%, #1e1b4b 65%, #0f172a 100%);
+  background-attachment: fixed;
+  color: #e2e8f0;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+@layer components {
+  .glass {
+    @apply bg-white/5 backdrop-blur-xl border border-white/10 shadow-glass rounded-2xl;
+  }
+  .glass-strong {
+    @apply bg-white/10 backdrop-blur-2xl border border-white/15 shadow-glass rounded-2xl;
+  }
+  .urgency-green {
+    @apply text-emerald-300;
+  }
+  .urgency-amber {
+    @apply text-amber-300;
+  }
+  .urgency-red {
+    @apply text-rose-300;
+  }
+}
+
+@media (prefers-reduced-transparency: reduce) {
+  .glass, .glass-strong {
+    background-color: rgb(15 23 42 / 0.92) !important;
+    backdrop-filter: none !important;
+  }
+}
