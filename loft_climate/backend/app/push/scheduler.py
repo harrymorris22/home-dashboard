@@ -1,0 +1,259 @@
+"""Tiered async push scheduler.
+
+Two cadences sharing the dedupe table:
+
+  Fast tick (60 s)  — RED-only sweep. Cheap: re-runs `decide()` on whatever
+                       Snapshot is current. Catches bedroom-overheat etc. in
+                       <60 s without doing the full forecast pipeline.
+  Slow tick (5 min) — Full snapshot via build_full_state(): OWM, sun, next
+                       actions, scenario transitions, weather-offline-red
+                       sustained-N counter, staleness recovery.
+
+Each tick has its own asyncio.Lock — single-flight protection. If a tick
+takes longer than its interval, the next one logs and skips.
+"""
+from __future__ import annotations
+
+import asyncio
+import logging
+import smtplib
+from datetime import datetime, timedelta, timezone
+from email.message import EmailMessage
+from zoneinfo import ZoneInfo
+
+from sqlalchemy.orm import Session
+
+from app.config.loader import load_config
+from app.db.session import session_scope
+from app.engine.engine import decide
+from app.push import repo as push_repo
+from app.push.dispatcher import send_to_all
+from app.push.triggers import DedupeRecord, evaluate_triggers
+from app.push.types import PushPayload, TriggerDecision
+from app.push.vapid import VapidKeys
+from app.settings import get_settings
+from app.snapshot.service import build_full_state, now_utc
+
+log = logging.getLogger(__name__)
+
+
+class PushScheduler:
+    def __init__(
+        self,
+        ha_client,
+        vapid_provider,  # callable returning VapidKeys | None (None when push disabled)
+        fast_interval_s: int = 60,
+        slow_interval_s: int = 300,
+    ) -> None:
+        self.ha_client = ha_client
+        self.vapid_provider = vapid_provider
+        self.fast_interval_s = fast_interval_s
+        self.slow_interval_s = slow_interval_s
+        self._fast_task: asyncio.Task[None] | None = None
+        self._slow_task: asyncio.Task[None] | None = None
+        self._stop = asyncio.Event()
+        self._fast_lock = asyncio.Lock()
+        self._slow_lock = asyncio.Lock()
+
+        # In-memory state (survives across ticks within a process):
+        self._weather_offline_red_streak = 0
+        self._last_global_scenario: str | None = None
+        # Recovery push tracking: subscription_id → datetime when recovery push sent
+        self._recovery_sent: dict[int, datetime] = {}
+
+    async def start(self) -> None:
+        self._stop.clear()
+        self._fast_task = asyncio.create_task(self._loop_fast(), name="push-fast")
+        self._slow_task = asyncio.create_task(self._loop_slow(), name="push-slow")
+        log.info("[push] scheduler started (fast=%ss, slow=%ss)", self.fast_interval_s, self.slow_interval_s)
+
+    async def stop(self) -> None:
+        self._stop.set()
+        for t in (self._fast_task, self._slow_task):
+            if t is not None:
+                t.cancel()
+                try:
+                    await t
+                except (asyncio.CancelledError, Exception):
+                    pass
+
+    async def _sleep(self, interval_s: int) -> None:
+        try:
+            await asyncio.wait_for(self._stop.wait(), timeout=interval_s)
+        except asyncio.TimeoutError:
+            pass
+
+    async def _loop_fast(self) -> None:
+        while not self._stop.is_set():
+            if self._fast_lock.locked():
+                log.warning("[push] fast tick skipped — previous still running")
+            else:
+                async with self._fast_lock:
+                    try:
+                        await self._tick_fast()
+                    except Exception:
+                        log.exception("[push] fast tick failed")
+            await self._sleep(self.fast_interval_s)
+
+    async def _loop_slow(self) -> None:
+        while not self._stop.is_set():
+            if self._slow_lock.locked():
+                log.warning("[push] slow tick skipped — previous still running")
+            else:
+                async with self._slow_lock:
+                    try:
+                        await self._tick_slow()
+                    except Exception:
+                        log.exception("[push] slow tick failed")
+            await self._sleep(self.slow_interval_s)
+
+    # --- fast tick: RED-only ------------------------------------------------
+
+    async def _tick_fast(self) -> None:
+        vapid = self.vapid_provider()
+        if vapid is None:
+            return  # push subsystem disabled
+        # Quick path: read current zones from HA WS (already cached); no OWM call.
+        with session_scope() as session:
+            cfg = load_config()
+            if not cfg.notifications.enabled:
+                return
+            bundle = await build_full_state(session, self.ha_client)  # cheapish
+            if bundle.rec.global_.urgency != "red" and not any(
+                b.urgency == "red" for b in bundle.rec.by_blind_group.values()
+            ) and not any(
+                z.urgency == "red" for z in bundle.rec.by_zone.values()
+            ):
+                return  # nothing red to act on
+            await self._dispatch_decisions(session, bundle, vapid, slow=False)
+
+    # --- slow tick: full pass ----------------------------------------------
+
+    async def _tick_slow(self) -> None:
+        vapid = self.vapid_provider()
+        if vapid is None:
+            return
+        with session_scope() as session:
+            cfg = load_config()
+            if not cfg.notifications.enabled:
+                return
+            bundle = await build_full_state(session, self.ha_client)
+            await self._dispatch_decisions(session, bundle, vapid, slow=True)
+            # Staleness recovery
+            await self._staleness_recovery(session, vapid, cfg)
+            # GC dedupe
+            push_repo.SqliteDedupeRepo(session).gc(now_utc(), max_age_hours=24)
+
+    # ---------------------------------------------------------------------
+
+    async def _dispatch_decisions(
+        self, session: Session, bundle, vapid: VapidKeys, slow: bool
+    ) -> None:
+        cfg = bundle.cfg
+        snap = bundle.snap
+        rec = bundle.rec
+        next_actions = bundle.next_actions
+
+        # Update sustained-N counter for weather=None+red.
+        if snap.weather is None and rec.global_.urgency == "red":
+            self._weather_offline_red_streak += 1
+        else:
+            self._weather_offline_red_streak = 0
+
+        tz = ZoneInfo(cfg.location.timezone)
+        now_u = now_utc()
+        now_l = now_u.astimezone(tz)
+
+        dedupe = push_repo.SqliteDedupeRepo(session)
+        decisions = evaluate_triggers(
+            snap=snap,
+            rec=rec,
+            next_actions=next_actions,
+            cfg=cfg,
+            dedupe=dedupe,
+            now=now_u,
+            now_local=now_l,
+            last_global_scenario=self._last_global_scenario,
+            weather_offline_red_streak=self._weather_offline_red_streak,
+        )
+        # Update last-seen scenario for the next tick (only on slow ticks to avoid
+        # the fast loop racing).
+        if slow:
+            self._last_global_scenario = rec.global_.scenario
+
+        if not decisions:
+            return
+
+        subs = push_repo.all_subscriptions(session)
+        if not subs:
+            return
+
+        for d in decisions:
+            await send_to_all(session, subs, d.payload, vapid)
+            dedupe.record(
+                DedupeRecord(
+                    actuator=d.actuator,
+                    scenario=d.scenario,
+                    sent_at=now_u,
+                    urgency=d.urgency,
+                    key=d.key,
+                )
+            )
+            log.info(
+                "[push] dispatched %s (urgency=%s, devices=%d)",
+                d.actuator, d.urgency, len(subs),
+            )
+
+    # ---------------------------------------------------------------------
+
+    async def _staleness_recovery(self, session: Session, vapid, cfg) -> None:
+        days = cfg.notifications.staleness_days
+        stale = push_repo.stale_subscriptions(session, now_utc(), days)
+        for sub in stale:
+            already = self._recovery_sent.get(sub.id)
+            if already and now_utc() - already < timedelta(hours=24):
+                # Already nudged in the last 24h; if STILL stale at this point,
+                # send the email and prune.
+                self._email_nudge(cfg, sub)
+                session.delete(sub)
+                session.commit()
+                self._recovery_sent.pop(sub.id, None)
+                continue
+            payload = PushPayload(
+                title="Tap to keep alerts working",
+                body="Your iPhone hasn't checked in for a while. Open this to reconnect.",
+                tag=f"recovery:{sub.id}",
+                urgency="amber",
+                ts=now_utc().isoformat(),
+            )
+            await send_to_all(session, [sub], payload, vapid)
+            self._recovery_sent[sub.id] = now_utc()
+
+    def _email_nudge(self, cfg, sub) -> None:
+        s = get_settings()
+        if not s.notify_email_smtp_password:
+            log.warning("[push] would email nudge for sub %s but SMTP not configured", sub.id)
+            return
+        recipient = s.notify_email_to or _strip_mailto(s.vapid_subject)
+        if not recipient:
+            return
+        msg = EmailMessage()
+        msg["Subject"] = "Loft Climate: notifications stopped working"
+        msg["From"] = recipient
+        msg["To"] = recipient
+        msg.set_content(
+            "Your installed PWA hasn't received a successful push in "
+            f"{cfg.notifications.staleness_days}+ days. Open "
+            "https://loft.harrymorris.me on the iPhone to re-enable.\n"
+        )
+        try:
+            with smtplib.SMTP_SSL("smtp.gmail.com", 465, timeout=10) as smtp:
+                smtp.login(recipient, s.notify_email_smtp_password)
+                smtp.send_message(msg)
+            log.info("[push] sent staleness email to %s", recipient)
+        except Exception as e:
+            log.warning("[push] staleness email failed: %s", e)
+
+
+def _strip_mailto(s: str) -> str:
+    return s[len("mailto:") :] if s.startswith("mailto:") else s

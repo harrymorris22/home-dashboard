@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import re
+from datetime import datetime
 from typing import Literal
 
 from pydantic import BaseModel, Field, field_validator, model_validator
@@ -116,6 +117,34 @@ class Engine(BaseModel):
     stale_after_minutes: int = 90
 
 
+class Notifications(BaseModel):
+    enabled: bool = True
+    quiet_hours_start: str = "23:00"
+    quiet_hours_end: str = "07:00"
+    cooldown_minutes: int = Field(default=30, ge=5, le=1440)
+    transition_window_minutes: int = Field(default=15, ge=1, le=60)
+    red_bypass_quiet_hours: bool = True
+    sustained_weather_offline_ticks: int = Field(default=3, ge=1, le=20)
+    staleness_days: int = Field(default=7, ge=1, le=90)
+    snooze_until: datetime | None = None  # ISO timestamp; null = no snooze
+
+    @field_validator("quiet_hours_start", "quiet_hours_end")
+    @classmethod
+    def _hhmm(cls, v: str) -> str:
+        if not re.fullmatch(r"\d{2}:\d{2}", v):
+            raise ValueError(f"time must be HH:MM, got {v!r}")
+        h, m = v.split(":")
+        if not (0 <= int(h) < 24 and 0 <= int(m) < 60):
+            raise ValueError(f"time out of range: {v!r}")
+        return v
+
+    @model_validator(mode="after")
+    def _band(self) -> Notifications:
+        if self.quiet_hours_start == self.quiet_hours_end:
+            raise ValueError("quiet_hours_start must differ from quiet_hours_end")
+        return self
+
+
 class Solar(BaseModel):
     uvi_high: float = 6.0
     uvi_moderate: float = 3.0
@@ -141,6 +170,7 @@ class ConfigV1(BaseModel):
     air: Air
     engine: Engine
     solar: Solar
+    notifications: Notifications = Field(default_factory=Notifications)
 
     @model_validator(mode="after")
     def _zones_complete(self) -> ConfigV1:

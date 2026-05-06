@@ -42,6 +42,13 @@ class Settings(BaseSettings):
     # Empty = manual scale only.
     ha_sunshine_entity: str = ""
 
+    # Web Push (Phase 2.5).
+    vapid_subject: str = "mailto:harrymorris22@gmail.com"
+    vapid_keys_path: Path = DATA_DIR / "vapid_keys.json"
+    # Optional Gmail app password for staleness-recovery emails (OV4).
+    notify_email_smtp_password: str = ""
+    notify_email_to: str = ""
+
 
 _settings: Settings | None = None
 

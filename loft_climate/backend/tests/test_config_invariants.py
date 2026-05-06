@@ -75,3 +75,33 @@ def test_lux_thresholds_ordered():
     payload["sun_on_sw"]["lux_indoor_direct_threshold"] = 100
     with pytest.raises(ValidationError):
         ConfigV1.model_validate(payload)
+
+
+def test_notifications_quiet_hours_format():
+    payload = _config_dict()
+    payload.setdefault("notifications", {})["quiet_hours_start"] = "25:99"
+    with pytest.raises(ValidationError):
+        ConfigV1.model_validate(payload)
+
+
+def test_notifications_quiet_hours_must_differ():
+    payload = _config_dict()
+    payload.setdefault("notifications", {})
+    payload["notifications"]["quiet_hours_start"] = "23:00"
+    payload["notifications"]["quiet_hours_end"] = "23:00"
+    with pytest.raises(ValidationError):
+        ConfigV1.model_validate(payload)
+
+
+def test_notifications_cooldown_lower_bound():
+    payload = _config_dict()
+    payload.setdefault("notifications", {})["cooldown_minutes"] = 1
+    with pytest.raises(ValidationError):
+        ConfigV1.model_validate(payload)
+
+
+def test_notifications_transition_window_upper_bound():
+    payload = _config_dict()
+    payload.setdefault("notifications", {})["transition_window_minutes"] = 999
+    with pytest.raises(ValidationError):
+        ConfigV1.model_validate(payload)

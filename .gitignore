@@ -16,6 +16,14 @@ loft_climate/backend/data/climate.db
 loft_climate/backend/data/climate.db-wal
 loft_climate/backend/data/climate.db-shm
 loft_climate/backend/data/config.json
+loft_climate/backend/data/vapid_keys.json
+
+# Python build / install artefacts.
+*.egg-info/
+loft_climate/backend/home_dashboard_backend.egg-info/
+
+# Vite cache / type build cache.
+loft_climate/frontend/tsconfig.tsbuildinfo
 
 .coverage
 coverage/

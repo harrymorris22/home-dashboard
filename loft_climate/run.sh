@@ -19,11 +19,14 @@ with open(sys.argv[1]) as f:
 
 # Map Add-on option names → backend env vars.
 mapping = {
-    "owm_api_key":         "OWM_API_KEY",
-    "ha_token":            "HA_TOKEN",
-    "ha_entity_map":       "HA_ENTITY_MAP",
-    "ha_outdoor_entities": "HA_OUTDOOR_ENTITIES",
-    "ha_sunshine_entity":  "HA_SUNSHINE_ENTITY",
+    "owm_api_key":               "OWM_API_KEY",
+    "ha_token":                  "HA_TOKEN",
+    "ha_entity_map":             "HA_ENTITY_MAP",
+    "ha_outdoor_entities":       "HA_OUTDOOR_ENTITIES",
+    "ha_sunshine_entity":        "HA_SUNSHINE_ENTITY",
+    "vapid_subject":             "VAPID_SUBJECT",
+    "notify_email_smtp_password":"NOTIFY_EMAIL_SMTP_PASSWORD",
+    "notify_email_to":           "NOTIFY_EMAIL_TO",
 }
 
 for src, dst in mapping.items():

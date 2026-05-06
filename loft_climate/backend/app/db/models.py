@@ -86,3 +86,50 @@ class Sunshine(Base):
     lux: Mapped[float] = mapped_column(Float, nullable=False)
     scale: Mapped[int | None] = mapped_column(Integer, nullable=True)  # 0–5 if from manual scale
     source: Mapped[str] = mapped_column(String(32), nullable=False, default="manual")
+
+
+class PushSubscription(Base):
+    """Web Push subscription. One row per device that opted in.
+
+    `endpoint` is the unique APNs URL provided by the browser. `p256dh` + `auth`
+    are the per-subscription encryption keys; we use them via pywebpush. ZHA can
+    push us → invalid → 410 Gone → row deleted by dispatcher.
+    """
+
+    __tablename__ = "push_subscriptions"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    endpoint: Mapped[str] = mapped_column(Text, nullable=False, unique=True)
+    p256dh: Mapped[str] = mapped_column(Text, nullable=False)
+    auth: Mapped[str] = mapped_column(Text, nullable=False)
+    ua: Mapped[str | None] = mapped_column(String(256), nullable=True)
+    label: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False
+    )
+    last_success_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+    last_error_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+    failure_count: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+
+
+class PushDedupeEntry(Base):
+    """Short-lived dedupe / cooldown record for push triggers.
+
+    `key` shape: ``<source>:<actuator>:<scenario>:<YYYY-MM-DDTHH>``.
+    GC older than 24 h on each scheduler tick.
+    """
+
+    __tablename__ = "push_dedupe"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    key: Mapped[str] = mapped_column(String(192), index=True, nullable=False)
+    actuator: Mapped[str] = mapped_column(String(64), nullable=False)
+    scenario: Mapped[str] = mapped_column(String(64), nullable=False)
+    sent_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False
+    )
+    urgency: Mapped[str] = mapped_column(String(16), nullable=False)

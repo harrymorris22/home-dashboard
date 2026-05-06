@@ -13,7 +13,31 @@ sun position, and a configurable rule engine.
 | `ha_entity_map` | JSON object mapping zone IDs to their HA entity IDs. See below. |
 | `ha_outdoor_entities` | JSON object mapping outdoor sensor entities. See below. |
 | `ha_sunshine_entity` | Entity ID of the SW glazing lux sensor (e.g. Aqara Light Sensor T1). When set, replaces the manual 0-5 sunshine scale. |
+| `vapid_subject` | Identity for VAPID claims (`mailto:` URL or `https:` URL). Default `mailto:harrymorris22@gmail.com`. |
+| `notify_email_smtp_password` | Optional Gmail app password used to send a fallback email when an iPhone subscription is detected as stale (>7 days no successful push). |
+| `notify_email_to` | Optional override for the staleness-email recipient. Defaults to the email portion of `vapid_subject`. |
 | `log_level` | Standard log level. Default `info`. |
+
+## Push notifications (v0.3.0+)
+
+The Add-on includes a Web Push subsystem that pings your iPhone when the
+engine wants you to act, even when the dashboard isn't open.
+
+**iPhone setup:**
+1. Open `https://loft.harrymorris.me` in Safari (signed in via Cloudflare Access).
+2. Tap **Share → Add to Home Screen**.
+3. Open the new icon (PWA standalone window).
+4. Navigate to `Notifications` → tap **Enable notifications** → Allow.
+5. Tap **Send test push** to verify delivery.
+
+**Trigger model:**
+- RED urgency anywhere → push always (incl. quiet hours)
+- AMBER actions due within 15 min → push during waking hours
+- Scenario green→amber transitions → push during waking hours
+- Quiet hours default 23:00–07:00 (configurable via `/config`)
+- 30-min cooldown per `(actuator, scenario)`
+
+**Snooze:** the `/notifications` page has Snooze 2h / Snooze until 07:00 / Resume.
 
 ### `ha_entity_map` format
 

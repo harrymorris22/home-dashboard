@@ -1,0 +1,39 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#0f172a"/>
+      <stop offset="100%" stop-color="#1e1b4b"/>
+    </linearGradient>
+    <linearGradient id="sun" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#fcd34d"/>
+      <stop offset="100%" stop-color="#f59e0b"/>
+    </linearGradient>
+    <linearGradient id="roof" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#94a3b8"/>
+      <stop offset="100%" stop-color="#475569"/>
+    </linearGradient>
+  </defs>
+  <rect width="1024" height="1024" rx="180" fill="url(#bg)"/>
+  <!-- Sun -->
+  <circle cx="690" cy="380" r="150" fill="url(#sun)"/>
+  <!-- Sun rays -->
+  <g stroke="#fcd34d" stroke-width="20" stroke-linecap="round">
+    <line x1="690" y1="160" x2="690" y2="200"/>
+    <line x1="690" y1="560" x2="690" y2="600"/>
+    <line x1="470" y1="380" x2="510" y2="380"/>
+    <line x1="870" y1="380" x2="910" y2="380"/>
+    <line x1="540" y1="230" x2="570" y2="260"/>
+    <line x1="810" y1="500" x2="840" y2="530"/>
+    <line x1="540" y1="530" x2="570" y2="500"/>
+    <line x1="810" y1="260" x2="840" y2="230"/>
+  </g>
+  <!-- Building / loft -->
+  <polygon points="180,720 180,420 460,260 460,720" fill="url(#roof)"/>
+  <polygon points="180,420 460,260 540,310 260,470" fill="#cbd5e1" opacity="0.4"/>
+  <!-- Glazing -->
+  <rect x="220" y="470" width="200" height="220" fill="#34d399" opacity="0.4" rx="8"/>
+  <rect x="220" y="470" width="200" height="110" fill="#34d399" opacity="0.6" rx="6"/>
+  <!-- Ground -->
+  <rect x="0" y="720" width="1024" height="304" fill="#0f172a"/>
+  <rect x="0" y="720" width="1024" height="6" fill="#475569"/>
+</svg>
