@@ -1,5 +1,5 @@
 name: Loft Climate Dashboard
-version: "0.5.0"
+version: "0.6.0"
 slug: loft_climate
 description: Smart climate control for a SW-facing London loft. Recommends per-zone blind positions and window open/closed states based on indoor sensors, weather, sun position, and a configurable rule engine.
 arch:
