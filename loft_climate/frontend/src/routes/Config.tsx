@@ -40,11 +40,11 @@ export function Config() {
 
   return (
     <div className="space-y-4">
-      <h1 className="text-2xl font-semibold">Config</h1>
+      <h1 className="font-display text-3xl uppercase tracking-tight text-primary">Config</h1>
 
       {error && (
-        <Card className="border-rose-500/40">
-          <p className="text-rose-300">Could not load /api/config.</p>
+        <Card className="border-2 border-primary">
+          <p className="text-primary uppercase tracking-label font-bold">Could not load /api/config.</p>
         </Card>
       )}
 
@@ -54,13 +54,13 @@ export function Config() {
         <button
           type="button"
           onClick={() => setAdvancedOpen((v) => !v)}
-          className="text-sm uppercase tracking-wider opacity-70 hover:opacity-100"
+          className="hud-label hover:text-primary"
         >
           {advancedOpen ? "▾" : "▸"} Advanced (raw JSON)
         </button>
         {advancedOpen && (
           <div className="mt-4">
-            <p className="text-xs opacity-60 mb-3">
+            <p className="text-xs text-secondary mb-3">
               Edits validation invariants on save (e.g.{" "}
               <code>comfort_min &lt; comfort_max</code>) — bad values are rejected with
               an error.
@@ -69,21 +69,21 @@ export function Config() {
               value={text}
               onChange={(e) => setText(e.target.value)}
               spellCheck={false}
-              className="w-full font-mono text-xs bg-black/30 border border-white/10 rounded p-3 min-h-[480px]"
+              className="w-full font-mono text-xs bg-surface text-primary border border-secondary/40 rounded p-3 min-h-[480px]"
             />
             <div className="flex items-center gap-3 mt-3">
               <button
                 type="button"
                 onClick={save}
                 disabled={saving}
-                className="glass-strong px-4 py-2 hover:bg-white/15 disabled:opacity-50"
+                className="hud-button-primary disabled:opacity-50"
               >
                 {saving ? "Saving…" : "Save raw JSON"}
               </button>
               {feedback && (
                 <span
-                  className={`text-sm ${
-                    feedback.kind === "ok" ? "text-emerald-300" : "text-rose-300"
+                  className={`text-sm uppercase tracking-label font-bold ${
+                    feedback.kind === "ok" ? "text-primary" : "text-tertiary"
                   }`}
                 >
                   {feedback.msg}

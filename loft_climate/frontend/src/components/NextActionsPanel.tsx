@@ -50,22 +50,22 @@ export function NextActionsPanel({ actions }: { actions: NextAction[] }) {
 
   return (
     <Card>
-      <h2 className="text-sm uppercase tracking-wider opacity-70 mb-3">Next actions</h2>
+      <h2 className="hud-label mb-3">Next actions</h2>
       <ul className="space-y-3">
         {grouped.map(([ts, items]) => {
           const reason = items.find((i) => i.reasoning)?.reasoning ?? "";
           return (
             <li key={ts} className="flex flex-col gap-1">
               <div className="flex items-baseline justify-between text-sm">
-                <span className="font-medium">{formatLocalTime(ts)}</span>
-                <span className="text-xs opacity-60">{formatDelta(ts)}</span>
+                <span className="font-bold text-primary">{formatLocalTime(ts)}</span>
+                <span className="text-xs text-secondary">{formatDelta(ts)}</span>
               </div>
-              <ul className="text-sm space-y-0.5 opacity-90">
+              <ul className="text-sm space-y-0.5 text-primary">
                 {items.map((it, i) => (
                   <li key={`${ts}-${i}`}>• {describeTransition(it)}</li>
                 ))}
               </ul>
-              {reason && <p className="text-xs opacity-60">Why: {reason}</p>}
+              {reason && <p className="text-xs text-secondary">Why: {reason}</p>}
             </li>
           );
         })}

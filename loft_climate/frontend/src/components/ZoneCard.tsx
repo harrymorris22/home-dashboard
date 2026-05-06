@@ -20,13 +20,13 @@ export function ZoneCard({
   return (
     <Card className="flex flex-col gap-3">
       <div className="flex items-center justify-between">
-        <h3 className="text-sm uppercase tracking-wider opacity-70">{label}</h3>
+        <h3 className="hud-label">{label}</h3>
         <UrgencyDot urgency={urgency} />
       </div>
-      <div className={`text-4xl font-semibold ${urgencyText[urgency]}`}>
+      <div className={`hud-display ${urgencyText[urgency]}`}>
         {formatTemp(temp_c ?? null)}
       </div>
-      <div className="flex justify-between text-sm opacity-70">
+      <div className="flex justify-between text-sm text-secondary">
         <span>RH {formatHumidity(humidity_pct ?? null)}</span>
       </div>
     </Card>

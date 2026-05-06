@@ -28,8 +28,8 @@ export function Simulate() {
 
   return (
     <div className="space-y-4">
-      <h1 className="text-2xl font-semibold">Simulate</h1>
-      <p className="text-sm opacity-70 max-w-2xl">
+      <h1 className="font-display text-3xl uppercase tracking-tight text-primary">Simulate</h1>
+      <p className="text-sm text-secondary max-w-2xl">
         Run the engine against a canned scenario to verify the matrix. Useful for
         eyeballing rule edits without waiting for real conditions.
       </p>
@@ -38,7 +38,7 @@ export function Simulate() {
           <select
             value={selected}
             onChange={(e) => setSelected(e.target.value)}
-            className="bg-white/5 border border-white/10 rounded px-2 py-2 text-sm"
+            className="bg-surface text-primary border border-secondary/40 rounded px-2 py-2 text-sm"
           >
             <option value="">— pick a scenario —</option>
             {(list?.scenarios ?? []).map((s) => (
@@ -49,7 +49,7 @@ export function Simulate() {
             type="button"
             onClick={run}
             disabled={!selected || running}
-            className="glass-strong px-4 py-2 hover:bg-white/15 disabled:opacity-50"
+            className="hud-button-primary disabled:opacity-50"
           >
             {running ? "Running…" : "Run"}
           </button>

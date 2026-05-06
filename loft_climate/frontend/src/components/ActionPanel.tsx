@@ -109,30 +109,30 @@ export function ActionPanel({
   return (
     <Card strong className="space-y-3">
       <div className="flex items-center justify-between">
-        <span className="text-xs uppercase tracking-wider opacity-70">What to do</span>
+        <span className="hud-label">What to do</span>
         <UrgencyDot urgency={urgency} label={urgency} />
       </div>
 
       {allNeutral ? (
-        <p className={`text-2xl sm:text-3xl font-semibold leading-snug ${urgencyText[urgency]}`}>
+        <p className={`font-display text-2xl sm:text-3xl uppercase leading-snug ${urgencyText[urgency]}`}>
           Nothing to do — your loft is in the comfort band.
         </p>
       ) : (
-        <div className={`text-2xl sm:text-3xl font-semibold leading-snug ${urgencyText[urgency]}`}>
+        <div className={`font-display text-2xl sm:text-3xl uppercase leading-snug ${urgencyText[urgency]}`}>
           <p>
-            <span className="opacity-60 text-base sm:text-lg font-medium">Blinds:</span>{" "}
+            <span className="hud-label">Blinds:</span>{" "}
             {blinds}
           </p>
           <p>
-            <span className="opacity-60 text-base sm:text-lg font-medium">Windows:</span>{" "}
+            <span className="hud-label">Windows:</span>{" "}
             {windows}
           </p>
         </div>
       )}
 
-      {why && <p className="text-sm opacity-80">Why: {why}</p>}
+      {why && <p className="text-sm text-secondary">Why: {why}</p>}
 
-      <ul className="text-sm space-y-1.5 border-t border-white/10 pt-3">
+      <ul className="text-sm space-y-1.5 border-t border-secondary/30 pt-3">
         {ZONE_ORDER.map((zone) => {
           const window = rec.by_zone[zone];
           const groupId = ZONE_TO_GROUP[zone];
@@ -191,11 +191,11 @@ export function ActionPanel({
           return (
             <li key={zone} className="flex items-center gap-2">
               <span className={`inline-block h-2 w-2 rounded-full ${urgencyClass[u]}`} />
-              <span className="opacity-70 w-28">{ZONE_LABEL[zone]}:</span>
-              <span>
+              <span className="text-secondary w-28">{ZONE_LABEL[zone]}:</span>
+              <span className="text-primary">
                 {parts.map((p, i) => (
-                  <span key={i} className={p.muted ? "opacity-50" : ""}>
-                    {i > 0 && <span className="opacity-40"> · </span>}
+                  <span key={i} className={p.muted ? "text-secondary" : ""}>
+                    {i > 0 && <span className="text-secondary"> · </span>}
                     {p.text}
                   </span>
                 ))}
@@ -206,7 +206,7 @@ export function ActionPanel({
       </ul>
 
       {rec.prompts.length > 0 && (
-        <ul className="text-xs space-y-1 opacity-70 border-t border-white/10 pt-3">
+        <ul className="text-xs space-y-1 text-secondary border-t border-secondary/30 pt-3">
           {rec.prompts.map((p) => (
             <li key={p}>• {p}</li>
           ))}

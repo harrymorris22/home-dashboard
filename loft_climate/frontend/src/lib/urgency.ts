@@ -1,15 +1,19 @@
 export type Urgency = "green" | "amber" | "red";
 
+// Strict adherence (sports-hud, design.md):
+// Single accent (tertiary #00E676) reserved exclusively for RED — the highest
+// severity. Lower severities communicate via shape, weight, and typography —
+// not colour. See globals.css `.urgency-*` classes for the typography rules.
 export const urgencyClass: Record<Urgency, string> = {
-  green: "bg-emerald-400/80",
-  amber: "bg-amber-400/80",
-  red: "bg-rose-500/90",
+  green: "bg-secondary/40",
+  amber: "bg-primary",
+  red: "bg-tertiary",
 };
 
 export const urgencyText: Record<Urgency, string> = {
-  green: "text-emerald-300",
-  amber: "text-amber-300",
-  red: "text-rose-300",
+  green: "urgency-green",
+  amber: "urgency-amber",
+  red: "urgency-red",
 };
 
 const RANK: Record<Urgency, number> = { green: 0, amber: 1, red: 2 };

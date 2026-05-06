@@ -14,14 +14,14 @@ export function ScenarioBadge({
   return (
     <Card strong className="flex flex-col gap-3">
       <div className="flex items-center justify-between">
-        <span className="text-xs uppercase tracking-wider opacity-70">Current scenario</span>
+        <span className="hud-label">Current scenario</span>
         <UrgencyDot urgency={urgency} label={urgency} />
       </div>
-      <div className={`text-2xl font-semibold ${urgencyText[urgency]}`}>
+      <div className={`font-display text-3xl uppercase tracking-tight ${urgencyText[urgency]}`}>
         {scenario.replaceAll("_", " ")}
       </div>
       {prompts.length > 0 && (
-        <ul className="text-sm space-y-1 opacity-90">
+        <ul className="text-sm space-y-1 text-primary">
           {prompts.map((p) => (
             <li key={p}>• {p}</li>
           ))}

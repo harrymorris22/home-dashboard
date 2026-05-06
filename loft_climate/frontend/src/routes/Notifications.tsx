@@ -85,12 +85,12 @@ export function Notifications() {
 
   return (
     <div className="space-y-4">
-      <h1 className="text-2xl font-semibold">Notifications</h1>
+      <h1 className="font-display text-3xl uppercase tracking-tight text-primary">Notifications</h1>
 
       {showInstallCallout && (
-        <Card className="border-amber-300/40 bg-amber-300/5">
-          <p className="text-sm">
-            <span className="font-medium text-amber-200">iPhone? Install first.</span>{" "}
+        <Card className="border-2 border-primary">
+          <p className="text-sm text-primary">
+            <span className="hud-label">iPhone? Install first.</span>{" "}
             On iOS, push only works for installed PWAs. Tap the <b>Share</b> icon
             in Safari → <b>Add to Home Screen</b>, then open the dashboard from the
             new icon.
@@ -99,8 +99,8 @@ export function Notifications() {
       )}
 
       <Card>
-        <h2 className="text-sm uppercase tracking-wider opacity-70 mb-3">Diagnostics</h2>
-        <ul className="text-sm space-y-1 opacity-90">
+        <h2 className="hud-label mb-3">Diagnostics</h2>
+        <ul className="text-sm space-y-1 text-primary">
           <li>Installed PWA: <strong>{diag ? String(diag.installed) : "…"}</strong></li>
           <li>Permission: <strong>{diag?.permission ?? "…"}</strong></li>
           <li>Service Worker registered: <strong>{diag ? String(diag.swRegistered) : "…"}</strong></li>
@@ -122,13 +122,13 @@ export function Notifications() {
       </Card>
 
       <Card>
-        <h2 className="text-sm uppercase tracking-wider opacity-70 mb-3">This device</h2>
+        <h2 className="hud-label mb-3">This device</h2>
         <div className="flex flex-wrap gap-3">
           <button
             type="button"
             onClick={onEnable}
             disabled={busy || diag?.subscribed}
-            className="glass-strong px-4 py-2 hover:bg-white/15 disabled:opacity-50"
+            className="hud-button-primary disabled:opacity-50"
           >
             Enable notifications
           </button>
@@ -136,7 +136,7 @@ export function Notifications() {
             type="button"
             onClick={onDisable}
             disabled={busy || !diag?.subscribed}
-            className="glass px-4 py-2 hover:bg-white/15 disabled:opacity-50"
+            className="hud-button-secondary disabled:opacity-50"
           >
             Disable
           </button>
@@ -144,7 +144,7 @@ export function Notifications() {
             type="button"
             onClick={onTest}
             disabled={busy || !diag?.subscribed}
-            className="glass px-4 py-2 hover:bg-white/15 disabled:opacity-50"
+            className="hud-button-secondary disabled:opacity-50"
           >
             Send test push
           </button>
@@ -152,45 +152,45 @@ export function Notifications() {
       </Card>
 
       <Card>
-        <h2 className="text-sm uppercase tracking-wider opacity-70 mb-3">Snooze</h2>
-        <p className="text-xs opacity-60 mb-3">
+        <h2 className="hud-label mb-3">Snooze</h2>
+        <p className="text-xs text-secondary mb-3">
           Suppress all pushes (including red) for a fixed window. Useful for
           travel or when you actively don't want pings.
         </p>
         <div className="flex flex-wrap gap-3">
           <button type="button" onClick={() => onSnoozeHours(2)} disabled={busy}
-                  className="glass px-4 py-2 hover:bg-white/15 disabled:opacity-50">
+                  className="hud-button-secondary disabled:opacity-50">
             Snooze 2 h
           </button>
           <button type="button" onClick={onSnoozeUntilMorning} disabled={busy}
-                  className="glass px-4 py-2 hover:bg-white/15 disabled:opacity-50">
+                  className="hud-button-secondary disabled:opacity-50">
             Snooze until 07:00
           </button>
           <button type="button" onClick={onResume} disabled={busy}
-                  className="glass-strong px-4 py-2 hover:bg-white/15 disabled:opacity-50">
+                  className="hud-button-primary disabled:opacity-50">
             Resume
           </button>
         </div>
       </Card>
 
       <Card>
-        <h2 className="text-sm uppercase tracking-wider opacity-70 mb-3">Registered devices</h2>
+        <h2 className="hud-label mb-3">Registered devices</h2>
         {!subs?.items?.length && (
-          <p className="text-sm opacity-70">No devices subscribed yet.</p>
+          <p className="text-sm text-secondary">No devices subscribed yet.</p>
         )}
         <ul className="space-y-2">
           {subs?.items?.map((s) => (
-            <li key={s.id} className="text-sm border-t border-white/10 pt-2">
+            <li key={s.id} className="text-sm text-primary border-t border-secondary/30 pt-2">
               <div className="flex justify-between">
                 <span>{s.label || s.ua || `Device #${s.id}`}</span>
-                <span className="opacity-50 text-xs">
+                <span className="text-secondary text-xs">
                   {s.last_success_at
                     ? `last ok ${new Date(s.last_success_at).toLocaleString()}`
                     : "never"}
                 </span>
               </div>
               {s.failure_count > 0 && (
-                <div className="text-xs text-rose-300 mt-1">
+                <div className="text-xs text-tertiary uppercase tracking-label font-display mt-1">
                   {s.failure_count} consecutive failures
                 </div>
               )}
@@ -201,8 +201,8 @@ export function Notifications() {
 
       {feedback && (
         <div
-          className={`glass p-3 text-sm ${
-            feedback.kind === "ok" ? "text-emerald-300" : "text-rose-300"
+          className={`border border-secondary/30 rounded p-3 text-sm uppercase tracking-label font-bold ${
+            feedback.kind === "ok" ? "text-primary" : "text-tertiary"
           }`}
         >
           {feedback.msg}

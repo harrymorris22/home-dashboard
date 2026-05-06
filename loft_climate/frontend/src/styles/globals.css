@@ -2,8 +2,18 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Sports HUD design system, /design.md @ sports-hud (alpha).
+ * Strict adherence: light theme, single accent, no gradients, sharp corners.
+ *
+ * Urgency communication: design.md says single accent only, but the climate
+ * dashboard has three load-bearing severity states. The accent (#00E676) is
+ * reserved exclusively for the highest severity (red — bedroom too hot,
+ * safety override). Lower severities rely on type weight + uppercase +
+ * label typography rather than colour.
+ */
+
 :root {
-  color-scheme: dark;
+  color-scheme: light;
 }
 
 html, body, #root {
@@ -12,36 +22,51 @@ html, body, #root {
 
 body {
   margin: 0;
-  font-family: -apple-system, BlinkMacSystemFont, "Inter", "Segoe UI", system-ui,
-    sans-serif;
-  background: linear-gradient(160deg, #020617 0%, #0f172a 35%, #1e1b4b 65%, #0f172a 100%);
-  background-attachment: fixed;
-  color: #e2e8f0;
+  font-family: 'Archivo', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+  background: #F1F3F5;
+  color: #0E1016;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
 
 @layer components {
+  /* Card — flat surface, sharp corners, hairline border. */
   .glass {
-    @apply bg-white/5 backdrop-blur-xl border border-white/10 shadow-glass rounded-2xl;
+    @apply bg-surface text-primary border border-secondary/30 rounded-md p-5;
   }
   .glass-strong {
-    @apply bg-white/10 backdrop-blur-2xl border border-white/15 shadow-glass rounded-2xl;
+    @apply bg-surface text-primary border-2 border-primary rounded-md p-5;
   }
+
+  .hud-label {
+    @apply font-sans uppercase tracking-label font-bold text-secondary;
+    font-size: 0.72rem;
+  }
+
+  .hud-display {
+    @apply font-display text-primary;
+    font-size: 4rem;
+    line-height: 1;
+    letter-spacing: -0.03em;
+  }
+
+  /* Urgency typography — strict adherence: severity via type, not colour. */
   .urgency-green {
-    @apply text-emerald-300;
+    @apply text-secondary;
   }
   .urgency-amber {
-    @apply text-amber-300;
+    @apply text-primary uppercase tracking-label font-bold;
   }
   .urgency-red {
-    @apply text-rose-300;
+    @apply text-tertiary uppercase font-display;
   }
-}
 
-@media (prefers-reduced-transparency: reduce) {
-  .glass, .glass-strong {
-    background-color: rgb(15 23 42 / 0.92) !important;
-    backdrop-filter: none !important;
+  .hud-button-primary {
+    @apply bg-tertiary text-primary border-0 rounded uppercase tracking-label font-bold;
+    padding: 12px 20px;
+  }
+  .hud-button-secondary {
+    @apply bg-surface text-primary border border-primary rounded uppercase tracking-label font-bold;
+    padding: 11px 19px;
   }
 }

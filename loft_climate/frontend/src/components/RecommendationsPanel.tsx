@@ -21,20 +21,20 @@ export function RecommendationsPanel({ rec }: { rec: Recommendations }) {
   return (
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
       <Card>
-        <h2 className="text-sm uppercase tracking-wider opacity-70 mb-3">Blinds</h2>
+        <h2 className="hud-label mb-3">Blinds</h2>
         <ul className="space-y-3">
           {BLIND_GROUP_IDS.map((g) => {
             const r = rec.by_blind_group[g];
             return (
               <li key={g} className="flex flex-col gap-1">
                 <div className="flex items-center justify-between">
-                  <span className="font-medium">{GROUP_LABEL[g]}</span>
-                  <span className={`font-semibold ${urgencyText[r.urgency]}`}>
+                  <span className="font-medium text-primary">{GROUP_LABEL[g]}</span>
+                  <span className={`font-bold ${urgencyText[r.urgency]}`}>
                     {formatBlind(r.blind_pct)}
                   </span>
                 </div>
                 {r.reasons.length > 0 && (
-                  <p className="text-xs opacity-70">{r.reasons[0]}</p>
+                  <p className="text-xs text-secondary">{r.reasons[0]}</p>
                 )}
               </li>
             );
@@ -43,7 +43,7 @@ export function RecommendationsPanel({ rec }: { rec: Recommendations }) {
       </Card>
 
       <Card>
-        <h2 className="text-sm uppercase tracking-wider opacity-70 mb-3">Windows</h2>
+        <h2 className="hud-label mb-3">Windows</h2>
         <ul className="space-y-3">
           {ZONE_IDS.map((z) => {
             const r = rec.by_zone[z];
@@ -52,11 +52,11 @@ export function RecommendationsPanel({ rec }: { rec: Recommendations }) {
             return (
               <li key={z} className="flex flex-col gap-1">
                 <div className="flex items-center justify-between">
-                  <span className="font-medium">{ZONE_LABEL[z]}</span>
-                  <span className={`font-semibold ${urgencyText[r.urgency]}`}>{state}</span>
+                  <span className="font-medium text-primary">{ZONE_LABEL[z]}</span>
+                  <span className={`font-bold ${urgencyText[r.urgency]}`}>{state}</span>
                 </div>
                 {r.reasons.length > 0 && (
-                  <p className="text-xs opacity-70">{r.reasons[0]}</p>
+                  <p className="text-xs text-secondary">{r.reasons[0]}</p>
                 )}
               </li>
             );
@@ -65,11 +65,11 @@ export function RecommendationsPanel({ rec }: { rec: Recommendations }) {
       </Card>
 
       {rec.rule_errors.length > 0 && (
-        <Card className="lg:col-span-2 border-rose-500/40">
-          <h2 className="text-sm uppercase tracking-wider text-rose-300 mb-2">
+        <Card className="lg:col-span-2 border-2 border-primary">
+          <h2 className="hud-label mb-2 text-primary">
             Rule errors (degraded)
           </h2>
-          <ul className="text-xs space-y-1 opacity-80">
+          <ul className="text-xs space-y-1 text-primary">
             {rec.rule_errors.map((e) => (
               <li key={e}>{e}</li>
             ))}
@@ -78,11 +78,11 @@ export function RecommendationsPanel({ rec }: { rec: Recommendations }) {
       )}
 
       <Card className="lg:col-span-2">
-        <h2 className="text-sm uppercase tracking-wider opacity-70 mb-3 flex items-center gap-3">
+        <h2 className="hud-label mb-3 flex items-center gap-3">
           Global state
           <UrgencyDot urgency={rec.global.urgency} label={rec.global.urgency} />
         </h2>
-        <p className="text-xs opacity-70">Scenario: {rec.global.scenario}</p>
+        <p className="text-xs text-secondary">Scenario: {rec.global.scenario}</p>
       </Card>
     </div>
   );

@@ -142,9 +142,9 @@ export function ManualEntryForm() {
     <form onSubmit={handleSubmit} className="space-y-4">
       <Card>
         <div className="flex items-baseline justify-between mb-3">
-          <h2 className="text-sm uppercase tracking-wider opacity-70">Sunshine on SW glazing</h2>
+          <h2 className="hud-label">Sunshine on SW glazing</h2>
           {lastSunshineLabel() && (
-            <span className="text-xs opacity-60">last: {lastSunshineLabel()}</span>
+            <span className="text-xs text-secondary">last: {lastSunshineLabel()}</span>
           )}
         </div>
         <div className="grid grid-cols-3 sm:grid-cols-6 gap-2">
@@ -155,32 +155,32 @@ export function ManualEntryForm() {
                 key={item.step}
                 type="button"
                 onClick={() => setSunshineStep(selected ? null : item.step)}
-                className={`px-2 py-3 rounded-lg border text-xs flex flex-col items-center gap-1 transition ${
+                className={`px-2 py-3 rounded border text-xs flex flex-col items-center gap-1 transition ${
                   selected
-                    ? "border-amber-300/70 bg-amber-300/10 text-amber-100"
-                    : "border-white/10 hover:border-white/30"
+                    ? "border-2 border-primary bg-primary text-surface"
+                    : "border-secondary/30 text-primary hover:border-primary"
                 }`}
               >
-                <span className="text-lg leading-none">{item.step}</span>
+                <span className="font-display text-lg leading-none">{item.step}</span>
                 <span className="text-center leading-tight">{item.label}</span>
-                <span className="opacity-50">~{item.lux} lx</span>
+                <span className="text-secondary">~{item.lux} lx</span>
               </button>
             );
           })}
         </div>
-        <p className="text-xs opacity-60 mt-2">
+        <p className="text-xs text-secondary mt-2">
           Phase 2: replaced by the Aqara Light Sensor T1 inside the SW window.
         </p>
       </Card>
 
       <Card>
-        <h2 className="text-sm uppercase tracking-wider opacity-70 mb-3">Zone temps</h2>
+        <h2 className="hud-label mb-3">Zone temps</h2>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {ZONE_IDS.map((z) => (
-            <fieldset key={z} className="glass p-4 space-y-2">
-              <legend className="text-sm font-medium">{ZONE_LABEL[z]}</legend>
+            <fieldset key={z} className="border border-secondary/30 rounded p-4 space-y-2">
+              <legend className="hud-label px-1">{ZONE_LABEL[z]}</legend>
               <label className="flex justify-between items-center gap-3 text-sm">
-                <span className="opacity-70 w-20">Temp °C</span>
+                <span className="text-secondary w-20">Temp °C</span>
                 <input
                   type="number"
                   step="0.1"
@@ -188,18 +188,18 @@ export function ManualEntryForm() {
                   value={zones[z].temp_c}
                   placeholder={placeholderFor(z, "temp_c")}
                   onChange={(e) => updateZone(z, "temp_c", e.target.value)}
-                  className="bg-white/5 border border-white/10 rounded px-2 py-1 flex-1 text-right tabular-nums placeholder:opacity-40"
+                  className="bg-surface text-primary border border-secondary/40 rounded px-2 py-1 flex-1 text-right tabular-nums placeholder:text-secondary/60"
                 />
               </label>
               <label className="flex justify-between items-center gap-3 text-sm">
-                <span className="opacity-70 w-20">RH %</span>
+                <span className="text-secondary w-20">RH %</span>
                 <input
                   type="number"
                   step="1"
                   value={zones[z].humidity_pct}
                   placeholder={placeholderFor(z, "humidity_pct")}
                   onChange={(e) => updateZone(z, "humidity_pct", e.target.value)}
-                  className="bg-white/5 border border-white/10 rounded px-2 py-1 flex-1 text-right tabular-nums placeholder:opacity-40"
+                  className="bg-surface text-primary border border-secondary/40 rounded px-2 py-1 flex-1 text-right tabular-nums placeholder:text-secondary/60"
                 />
               </label>
             </fieldset>
@@ -208,27 +208,27 @@ export function ManualEntryForm() {
       </Card>
 
       <Card>
-        <h2 className="text-sm uppercase tracking-wider opacity-70 mb-3">
+        <h2 className="hud-label mb-3">
           Current configuration
         </h2>
-        <p className="text-xs opacity-60 mb-4">
+        <p className="text-xs text-secondary mb-4">
           Tell the engine what's actually open/closed right now so it knows what
           (if anything) needs to change. Phase 2: replaced by Home Assistant cover
           state.
         </p>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <fieldset className="glass p-4 space-y-3">
-            <legend className="text-sm font-medium">Blinds</legend>
+          <fieldset className="border border-secondary/30 rounded p-4 space-y-3">
+            <legend className="hud-label px-1">Blinds</legend>
             {BLIND_GROUP_IDS.map((g) => {
               const known = knownBlind(g);
               const selected = blindState[g];
               return (
                 <div key={g} className="space-y-1">
                   <div className="flex items-baseline justify-between text-sm">
-                    <span>{BLIND_LABEL[g]}</span>
+                    <span className="text-primary">{BLIND_LABEL[g]}</span>
                     {known !== null && (
-                      <span className="text-xs opacity-50">last: {known}%</span>
+                      <span className="text-xs text-secondary">last: {known}%</span>
                     )}
                   </div>
                   <div className="flex gap-1">
@@ -244,8 +244,8 @@ export function ManualEntryForm() {
                         }
                         className={`flex-1 py-1.5 text-xs rounded border transition ${
                           selected === step
-                            ? "border-emerald-300/70 bg-emerald-300/10 text-emerald-100"
-                            : "border-white/10 hover:border-white/30"
+                            ? "border-2 border-primary bg-primary text-surface"
+                            : "border-secondary/30 text-primary hover:border-primary"
                         }`}
                       >
                         {step === 0 ? "Up" : step === 100 ? "Down" : `${step}%`}
@@ -257,17 +257,17 @@ export function ManualEntryForm() {
             })}
           </fieldset>
 
-          <fieldset className="glass p-4 space-y-3">
-            <legend className="text-sm font-medium">Windows</legend>
+          <fieldset className="border border-secondary/30 rounded p-4 space-y-3">
+            <legend className="hud-label px-1">Windows</legend>
             {ZONE_IDS.map((z) => {
               const known = knownWindow(z);
               const selected = windowState[z];
               return (
                 <div key={z} className="space-y-1">
                   <div className="flex items-baseline justify-between text-sm">
-                    <span>{ZONE_LABEL[z]}</span>
+                    <span className="text-primary">{ZONE_LABEL[z]}</span>
                     {known !== null && (
-                      <span className="text-xs opacity-50">
+                      <span className="text-xs text-secondary">
                         last: {known ? "open" : "closed"}
                       </span>
                     )}
@@ -288,8 +288,8 @@ export function ManualEntryForm() {
                         }
                         className={`flex-1 py-1.5 text-xs rounded border transition ${
                           selected === v
-                            ? "border-emerald-300/70 bg-emerald-300/10 text-emerald-100"
-                            : "border-white/10 hover:border-white/30"
+                            ? "border-2 border-primary bg-primary text-surface"
+                            : "border-secondary/30 text-primary hover:border-primary"
                         }`}
                       >
                         {label}
@@ -304,26 +304,26 @@ export function ManualEntryForm() {
       </Card>
 
       <Card>
-        <h2 className="text-sm uppercase tracking-wider opacity-70 mb-3">
+        <h2 className="hud-label mb-3">
           Feedback (optional but helpful for tuning)
         </h2>
         <div className="space-y-3 text-sm">
           <label className="block">
-            <span className="opacity-70 block mb-1">What did you actually do?</span>
+            <span className="text-secondary block mb-1">What did you actually do?</span>
             <input
               type="text"
               value={feedback.action_taken}
               onChange={(e) => setFeedback((p) => ({ ...p, action_taken: e.target.value }))}
               placeholder="e.g. closed bedroom blind, opened kitchen window"
-              className="w-full bg-white/5 border border-white/10 rounded px-2 py-2"
+              className="w-full bg-surface text-primary border border-secondary/40 rounded px-2 py-2 placeholder:text-secondary/60"
             />
           </label>
           <label className="block">
-            <span className="opacity-70 block mb-1">Did the recommendation feel right?</span>
+            <span className="text-secondary block mb-1">Did the recommendation feel right?</span>
             <select
               value={feedback.felt_right}
               onChange={(e) => setFeedback((p) => ({ ...p, felt_right: e.target.value }))}
-              className="w-full bg-white/5 border border-white/10 rounded px-2 py-2"
+              className="w-full bg-surface text-primary border border-secondary/40 rounded px-2 py-2"
             >
               <option value="">—</option>
               <option value="yes">Yes</option>
@@ -332,26 +332,26 @@ export function ManualEntryForm() {
             </select>
           </label>
           <label className="block">
-            <span className="opacity-70 block mb-1">Note</span>
+            <span className="text-secondary block mb-1">Note</span>
             <textarea
               value={feedback.note}
               onChange={(e) => setFeedback((p) => ({ ...p, note: e.target.value }))}
               rows={2}
-              className="w-full bg-white/5 border border-white/10 rounded px-2 py-2"
+              className="w-full bg-surface text-primary border border-secondary/40 rounded px-2 py-2"
             />
           </label>
         </div>
       </Card>
 
       {error && (
-        <div className="glass border-rose-500/40 p-3 text-sm text-rose-300">{error}</div>
+        <div className="border-2 border-primary bg-surface text-primary rounded p-3 text-sm">{error}</div>
       )}
 
       <div className="flex gap-3">
         <button
           type="submit"
           disabled={submitting}
-          className="glass-strong px-5 py-3 font-medium hover:bg-white/15 disabled:opacity-50"
+          className="hud-button-primary disabled:opacity-50"
         >
           {submitting ? "Saving…" : "Save reading"}
         </button>

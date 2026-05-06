@@ -20,18 +20,18 @@ export default function App() {
   return (
     <div className="min-h-screen px-4 py-6 sm:px-8 sm:py-10 max-w-6xl mx-auto">
       <header className="mb-6 flex flex-wrap items-center gap-x-6 gap-y-3">
-        <h1 className="text-xl font-semibold tracking-wide">Loft Climate</h1>
-        <nav className="flex flex-wrap gap-x-4 gap-y-1 text-sm">
+        <h1 className="font-display uppercase text-2xl tracking-tight text-primary">Loft Climate</h1>
+        <nav className="flex flex-wrap gap-x-2 gap-y-1 text-sm">
           {NAV.map((n) => (
             <NavLink
               key={n.to}
               to={n.to}
               end={n.end}
               className={({ isActive }) =>
-                `transition px-2 py-1 rounded ${
+                `px-3 py-1.5 rounded uppercase tracking-label text-xs font-bold transition ${
                   isActive
-                    ? "bg-white/10 text-white"
-                    : "opacity-70 hover:opacity-100 hover:bg-white/5"
+                    ? "bg-primary text-surface"
+                    : "text-secondary hover:text-primary hover:bg-secondary/10"
                 }`
               }
             >

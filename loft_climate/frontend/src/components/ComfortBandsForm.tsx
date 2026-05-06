@@ -40,7 +40,7 @@ export function ComfortBandsForm() {
   if (!draft) {
     return (
       <Card>
-        <p className="opacity-70 text-sm">Loading config…</p>
+        <p className="text-secondary text-sm">Loading config…</p>
       </Card>
     );
   }
@@ -92,8 +92,8 @@ export function ComfortBandsForm() {
 
   return (
     <Card>
-      <h2 className="text-sm uppercase tracking-wider opacity-70 mb-3">Comfort bands</h2>
-      <p className="text-xs opacity-60 mb-4">
+      <h2 className="hud-label mb-3">Comfort bands</h2>
+      <p className="text-xs text-secondary mb-4">
         Temperature range each zone should sit inside. Outside the band the engine
         starts firing rules. Bedroom uses an extra "bedtime target" reached by
         bedtime.
@@ -104,32 +104,32 @@ export function ComfortBandsForm() {
           const zc = draft.zones[z];
           if (!zc) return null;
           return (
-            <fieldset key={z} className="glass p-4 space-y-3">
-              <legend className="text-sm font-medium">{ZONE_LABEL[z]}</legend>
+            <fieldset key={z} className="border border-secondary/30 rounded p-4 space-y-3">
+              <legend className="hud-label px-1">{ZONE_LABEL[z]}</legend>
               <label className="flex justify-between items-center gap-3 text-sm">
-                <span className="opacity-70 w-28">Min °C</span>
+                <span className="text-secondary w-28">Min °C</span>
                 <input
                   type="number"
                   step="0.5"
                   value={zc.comfort_min}
                   onChange={(e) => updateZone(z, "comfort_min", parseFloat(e.target.value))}
-                  className="bg-white/5 border border-white/10 rounded px-2 py-1 flex-1 text-right tabular-nums"
+                  className="bg-surface text-primary border border-secondary/40 rounded px-2 py-1 flex-1 text-right tabular-nums"
                 />
               </label>
               <label className="flex justify-between items-center gap-3 text-sm">
-                <span className="opacity-70 w-28">Max °C</span>
+                <span className="text-secondary w-28">Max °C</span>
                 <input
                   type="number"
                   step="0.5"
                   value={zc.comfort_max}
                   onChange={(e) => updateZone(z, "comfort_max", parseFloat(e.target.value))}
-                  className="bg-white/5 border border-white/10 rounded px-2 py-1 flex-1 text-right tabular-nums"
+                  className="bg-surface text-primary border border-secondary/40 rounded px-2 py-1 flex-1 text-right tabular-nums"
                 />
               </label>
               {z === "bedroom" && (
                 <>
                   <label className="flex justify-between items-center gap-3 text-sm">
-                    <span className="opacity-70 w-28">Bedtime target °C</span>
+                    <span className="text-secondary w-28">Bedtime target °C</span>
                     <input
                       type="number"
                       step="0.5"
@@ -141,11 +141,11 @@ export function ComfortBandsForm() {
                           e.target.value === "" ? null : parseFloat(e.target.value),
                         )
                       }
-                      className="bg-white/5 border border-white/10 rounded px-2 py-1 flex-1 text-right tabular-nums"
+                      className="bg-surface text-primary border border-secondary/40 rounded px-2 py-1 flex-1 text-right tabular-nums"
                     />
                   </label>
                   <label className="flex justify-between items-center gap-3 text-sm">
-                    <span className="opacity-70 w-28">Pre-cool window</span>
+                    <span className="text-secondary w-28">Pre-cool window</span>
                     <input
                       type="number"
                       step="5"
@@ -157,15 +157,15 @@ export function ComfortBandsForm() {
                           e.target.value === "" ? null : parseInt(e.target.value, 10),
                         )
                       }
-                      className="bg-white/5 border border-white/10 rounded px-2 py-1 flex-1 text-right tabular-nums"
+                      className="bg-surface text-primary border border-secondary/40 rounded px-2 py-1 flex-1 text-right tabular-nums"
                     />
-                    <span className="text-xs opacity-50 w-12 text-right">min</span>
+                    <span className="text-xs text-secondary w-12 text-right">min</span>
                   </label>
                 </>
               )}
               {z === "ceiling_apex" && (
                 <label className="flex justify-between items-center gap-3 text-sm">
-                  <span className="opacity-70 w-28">Stack-vent Δ°C</span>
+                  <span className="text-secondary w-28">Stack-vent Δ°C</span>
                   <input
                     type="number"
                     step="0.5"
@@ -177,7 +177,7 @@ export function ComfortBandsForm() {
                         e.target.value === "" ? null : parseFloat(e.target.value),
                       )
                     }
-                    className="bg-white/5 border border-white/10 rounded px-2 py-1 flex-1 text-right tabular-nums"
+                    className="bg-surface text-primary border border-secondary/40 rounded px-2 py-1 flex-1 text-right tabular-nums"
                   />
                 </label>
               )}
@@ -186,24 +186,24 @@ export function ComfortBandsForm() {
         })}
       </div>
 
-      <fieldset className="glass p-4 space-y-3 mt-4">
-        <legend className="text-sm font-medium">Schedule</legend>
+      <fieldset className="border border-secondary/30 rounded p-4 space-y-3 mt-4">
+        <legend className="hud-label px-1">Schedule</legend>
         <label className="flex justify-between items-center gap-3 text-sm">
-          <span className="opacity-70 w-28">Bedtime</span>
+          <span className="text-secondary w-28">Bedtime</span>
           <input
             type="time"
             value={draft.schedule.bedtime_local}
             onChange={(e) => updateSchedule("bedtime_local", e.target.value)}
-            className="bg-white/5 border border-white/10 rounded px-2 py-1 flex-1"
+            className="bg-surface text-primary border border-secondary/40 rounded px-2 py-1 flex-1"
           />
         </label>
         <label className="flex justify-between items-center gap-3 text-sm">
-          <span className="opacity-70 w-28">Wake</span>
+          <span className="text-secondary w-28">Wake</span>
           <input
             type="time"
             value={draft.schedule.wake_local}
             onChange={(e) => updateSchedule("wake_local", e.target.value)}
-            className="bg-white/5 border border-white/10 rounded px-2 py-1 flex-1"
+            className="bg-surface text-primary border border-secondary/40 rounded px-2 py-1 flex-1"
           />
         </label>
       </fieldset>
@@ -213,21 +213,21 @@ export function ComfortBandsForm() {
           type="button"
           onClick={save}
           disabled={saving}
-          className="glass-strong px-4 py-2 hover:bg-white/15 disabled:opacity-50"
+          className="hud-button-primary disabled:opacity-50"
         >
           {saving ? "Saving…" : "Save comfort bands"}
         </button>
         <button
           type="button"
           onClick={reset}
-          className="px-3 py-2 opacity-70 hover:opacity-100 text-sm"
+          className="hud-button-secondary"
         >
           Reset
         </button>
         {feedback && (
           <span
-            className={`text-sm ${
-              feedback.kind === "ok" ? "text-emerald-300" : "text-rose-300"
+            className={`text-sm uppercase tracking-label font-bold ${
+              feedback.kind === "ok" ? "text-primary" : "text-tertiary"
             }`}
           >
             {feedback.msg}

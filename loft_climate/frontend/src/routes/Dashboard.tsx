@@ -11,11 +11,11 @@ export function Dashboard() {
   const { data, error, isLoading } = useDashboardState();
 
   if (isLoading)
-    return <Card><p className="opacity-70">Loading…</p></Card>;
+    return <Card><p className="text-secondary">Loading…</p></Card>;
   if (error || !data)
     return (
-      <Card className="border-rose-500/40">
-        <p className="text-rose-300">Could not load /api/state.</p>
+      <Card className="border-2 border-primary">
+        <p className="text-primary uppercase tracking-label font-bold">Could not load /api/state.</p>
       </Card>
     );
 
@@ -26,7 +26,7 @@ export function Dashboard() {
       <WeatherStrip weather={data.weather} sun={data.sun} sunshine={data.sunshine} />
       <ZoneGrid sensors={data.sensors} recommendations={data.recommendations} />
       <RecommendationsPanel rec={data.recommendations} />
-      <Card className="text-xs opacity-60 text-center">
+      <Card className="text-xs text-secondary text-center">
         Last refresh {relativeTime(data.ts)}
       </Card>
     </div>
