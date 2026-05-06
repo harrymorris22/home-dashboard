@@ -5,12 +5,14 @@ and tracks per-subscription failure counters.
 from __future__ import annotations
 
 import asyncio
+import base64
 import json
 import logging
 from dataclasses import asdict
 from datetime import datetime, timezone
 from typing import Iterable
 
+from cryptography.hazmat.primitives import serialization
 from pywebpush import WebPushException, webpush
 from sqlalchemy.orm import Session
 
@@ -33,6 +35,16 @@ _URGENCY_TTL: dict[Urgency, int] = {
 }
 
 _PAYLOAD_CEILING_BYTES = 3 * 1024  # leave headroom under iOS ~4 KB
+
+
+def _pem_to_raw_b64url(pem: str) -> str:
+    """py_vapid's from_string PEM detection is fragile across versions.
+    Converting our stored PEM to the raw 32-byte base64url form takes the
+    `from_raw` code path, which has been stable since py_vapid 1.x.
+    """
+    private_key = serialization.load_pem_private_key(pem.encode("ascii"), password=None)
+    raw = private_key.private_numbers().private_value.to_bytes(32, "big")  # type: ignore[attr-defined]
+    return base64.urlsafe_b64encode(raw).rstrip(b"=").decode("ascii")
 
 
 def _serialise_payload(p: PushPayload) -> str:
@@ -74,7 +86,7 @@ def _send_one_sync(
                 "keys": {"p256dh": sub.p256dh, "auth": sub.auth},
             },
             data=payload_body,
-            vapid_private_key=vapid.private_pem,
+            vapid_private_key=_pem_to_raw_b64url(vapid.private_pem),
             vapid_claims={"sub": vapid.subject},
             ttl=_URGENCY_TTL[urgency],
             headers={"Urgency": _URGENCY_HEADER[urgency]},
