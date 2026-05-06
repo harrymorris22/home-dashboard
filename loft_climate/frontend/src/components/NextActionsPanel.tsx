@@ -2,10 +2,10 @@ import type { NextAction } from "../api/types";
 import { Card } from "./glass/Card";
 
 const ACTUATOR_LABEL: Record<string, string> = {
-  "blind:mezz": "Mezzanine blinds",
+  "blind:mezz": "Office blinds",
   "blind:downstairs": "Downstairs blinds",
   "blind:bedroom": "Bedroom blinds",
-  "window:mezzanine": "Mezzanine window",
+  "window:mezzanine": "Office window",
   "window:downstairs": "Downstairs window",
   "window:ceiling_apex": "Apex window",
   "window:bedroom": "Bedroom window",

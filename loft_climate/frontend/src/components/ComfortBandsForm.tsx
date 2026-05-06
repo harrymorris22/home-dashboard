@@ -21,7 +21,7 @@ type ConfigShape = {
 };
 
 const ZONE_LABEL: Record<ZoneId, string> = {
-  mezzanine: "Mezzanine",
+  mezzanine: "Office",
   downstairs: "Downstairs",
   ceiling_apex: "Ceiling apex",
   bedroom: "Bedroom",

@@ -17,8 +17,12 @@ from app.config.schema import ConfigV1
 from app.engine.engine import decide
 from app.engine.forecast import project_actions
 from app.engine.types import DashboardRecommendation, Snapshot
-from app.sensors.composite import CompositeSensorSource
+from app.sensors.composite import (
+    CompositeActuatorStateSource,
+    CompositeSensorSource,
+)
 from app.sensors.homeassistant import (
+    HomeAssistantCoverSource,
     HomeAssistantOutdoorSource,
     HomeAssistantSensorSource,
     HomeAssistantSunshineSource,
@@ -65,12 +69,21 @@ async def build_full_state(session: Session, ha_client) -> StateBundle:
         if ha_sun.latest() is not None:
             sunshine_source = ha_sun
 
+    # Actuator state: HA cover source preferred (blind position from Tahoma),
+    # manual fills the rest (windows are physical casements, not on HA).
+    manual_actuator = ManualActuatorStateSource(session)
+    if ha_client is not None and settings.ha_blind_entities:
+        ha_cover = HomeAssistantCoverSource(ha_client, settings.ha_blind_entities)
+        actuator_source = CompositeActuatorStateSource(ha_cover, manual_actuator)
+    else:
+        actuator_source = manual_actuator
+
     builder = SnapshotBuilder(
         session,
         sensor_source,
         cfg,
         sunshine_source=sunshine_source,
-        actuator_state_source=ManualActuatorStateSource(session),
+        actuator_state_source=actuator_source,
         outdoor_source=outdoor_source,
     )
     snap = await builder.build()

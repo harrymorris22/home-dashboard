@@ -12,14 +12,14 @@ import { BLIND_GROUP_IDS, type BlindGroupId, ZONE_IDS, type ZoneId } from "../ap
 import { Card } from "./glass/Card";
 
 const ZONE_LABEL: Record<ZoneId, string> = {
-  mezzanine: "Mezzanine",
+  mezzanine: "Office",
   downstairs: "Downstairs",
   ceiling_apex: "Ceiling apex",
   bedroom: "Bedroom",
 };
 
 const BLIND_LABEL: Record<BlindGroupId, string> = {
-  mezz: "Mezzanine",
+  mezz: "Office",
   downstairs: "Downstairs",
   bedroom: "Bedroom",
 };

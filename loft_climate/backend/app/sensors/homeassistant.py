@@ -19,7 +19,12 @@ from typing import Any
 from websockets.asyncio.client import connect as ws_connect
 from websockets.exceptions import ConnectionClosed
 
-from app.sensors.source import OutdoorReading, SunshineReading, ZoneSensorReading
+from app.sensors.source import (
+    CurrentActuatorState,
+    OutdoorReading,
+    SunshineReading,
+    ZoneSensorReading,
+)
 
 log = logging.getLogger(__name__)
 
@@ -219,6 +224,55 @@ class HomeAssistantSunshineSource:
             lux=lux,
             scale=None,  # real sensor reading, not the manual 0–5 scale
         )
+
+
+class HomeAssistantCoverSource:
+    """Reads blind state from HA cover.* entities (Phase 2: Tahoma via Overkiz).
+
+    `blind_groups` maps our internal group id → list of HA cover entity ids.
+    When multiple entities map to one group (e.g. left + right bedroom blinds),
+    their positions are averaged.
+
+    Position semantics conversion:
+      - HA cover.current_position: 100 = fully open, 0 = fully closed
+      - Our blind_pct:             100 = fully down (closed), 0 = fully up (open)
+    These are inverted; conversion is `our_pct = 100 - ha_position`.
+    """
+
+    def __init__(self, client: HAClient, blind_groups: dict[str, list[str]]) -> None:
+        self.client = client
+        self.blind_groups = blind_groups
+
+    def latest(self) -> CurrentActuatorState:
+        out_blinds: dict[str, int] = {}
+        for group, entities in self.blind_groups.items():
+            positions: list[int] = []
+            for eid in entities:
+                state = self.client.get_state(eid)
+                if state is None:
+                    continue
+                attrs = state.get("attributes") or {}
+                ha_pos = attrs.get("current_position")
+                if ha_pos is None:
+                    # Fallback: derive from coarse string state.
+                    s = state.get("state")
+                    if s == "closed":
+                        ha_pos = 0
+                    elif s == "open":
+                        ha_pos = 100
+                    else:
+                        # 'opening' / 'closing' / 'unknown' / 'unavailable' → skip
+                        continue
+                try:
+                    ha_pos_i = int(float(ha_pos))
+                except (TypeError, ValueError):
+                    continue
+                ha_pos_i = max(0, min(100, ha_pos_i))
+                # Invert: HA 100=open ↔ our 100=down.
+                positions.append(100 - ha_pos_i)
+            if positions:
+                out_blinds[group] = sum(positions) // len(positions)
+        return CurrentActuatorState(blind_pct=out_blinds, window_open={})
 
 
 class HomeAssistantOutdoorSource:

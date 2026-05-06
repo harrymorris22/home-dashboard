@@ -13,6 +13,7 @@ sun position, and a configurable rule engine.
 | `ha_entity_map` | JSON object mapping zone IDs to their HA entity IDs. See below. |
 | `ha_outdoor_entities` | JSON object mapping outdoor sensor entities. See below. |
 | `ha_sunshine_entity` | Entity ID of the SW glazing lux sensor (e.g. Aqara Light Sensor T1). When set, replaces the manual 0-5 sunshine scale. |
+| `ha_blind_entities` | JSON object mapping blind group → list of HA `cover.*` entity IDs (Phase 2: Tahoma via Overkiz). When set, current blind position is read live from HA instead of from manual entry. Multi-entity groups are averaged. See below. |
 | `vapid_subject` | Identity for VAPID claims (`mailto:` URL or `https:` URL). Default `mailto:harrymorris22@gmail.com`. |
 | `notify_email_smtp_password` | Optional Gmail app password used to send a fallback email when an iPhone subscription is detected as stale (>7 days no successful push). |
 | `notify_email_to` | Optional override for the staleness-email recipient. Defaults to the email portion of `vapid_subject`. |
@@ -70,6 +71,24 @@ last submitted.
 When present, the dashboard uses these readings instead of OpenWeatherMap's
 forecast for the *current* outdoor temperature + humidity. OWM still provides
 wind, cloud cover, UV, sunrise/sunset, and the hourly forecast.
+
+### `ha_blind_entities` format
+
+```json
+{
+  "mezz":       ["cover.left_office", "cover.right_office"],
+  "downstairs": ["cover.downstairs_blinds"],
+  "bedroom":    ["cover.left_bedroom", "cover.right_bedroom"]
+}
+```
+
+Multiple entities per group are averaged. Position is automatically inverted
+from HA's convention (100 = open) to the dashboard's convention (100 = down /
+closed). Groups not listed (or whose entities are unknown to HA) fall back to
+manual current-state entry on `/entry`.
+
+The dashboard refers to the `mezz` group as **Office** in the UI; internal
+keys keep `mezz` for backwards compatibility with existing data.
 
 ## Networking
 

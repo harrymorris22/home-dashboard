@@ -41,6 +41,12 @@ class Settings(BaseSettings):
     # Single SW glazing lux entity (Phase 2: Aqara Light Sensor T1).
     # Empty = manual scale only.
     ha_sunshine_entity: str = ""
+    # Per blind-group HA cover entity mapping. Empty = manual entry only.
+    # Example:
+    #   {"mezz":["cover.left_office","cover.right_office"],
+    #    "downstairs":["cover.downstairs_blinds"],
+    #    "bedroom":["cover.left_bedroom","cover.right_bedroom"]}
+    ha_blind_entities: dict[str, list[str]] = Field(default_factory=dict)
 
     # Web Push (Phase 2.5).
     vapid_subject: str = "mailto:harrymorris22@gmail.com"

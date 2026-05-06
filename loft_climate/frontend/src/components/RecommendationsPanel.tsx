@@ -5,14 +5,14 @@ import { formatBlind } from "../lib/format";
 import { UrgencyDot } from "./UrgencyDot";
 
 const ZONE_LABEL: Record<ZoneId, string> = {
-  mezzanine: "Mezzanine",
+  mezzanine: "Office",
   downstairs: "Downstairs",
   ceiling_apex: "Ceiling apex",
   bedroom: "Bedroom",
 };
 
 const GROUP_LABEL: Record<string, string> = {
-  mezz: "Mezz blind",
+  mezz: "Office blind",
   downstairs: "Downstairs blind",
   bedroom: "Bedroom blind",
 };
