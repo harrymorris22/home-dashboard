@@ -15,8 +15,6 @@ from app.api import (
     routes_ha,
     routes_history,
     routes_push,
-    routes_readings,
-    routes_simulate,
     routes_state,
     routes_weather,
 )
@@ -84,12 +82,10 @@ def create_app() -> FastAPI:
         allow_methods=["*"],
         allow_headers=["*"],
     )
-    app.include_router(routes_readings.router)
     app.include_router(routes_state.router)
     app.include_router(routes_history.router)
     app.include_router(routes_config.router)
     app.include_router(routes_weather.router)
-    app.include_router(routes_simulate.router)
     app.include_router(routes_ha.router)
     app.include_router(routes_push.router)
 

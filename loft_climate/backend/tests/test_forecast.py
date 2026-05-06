@@ -1,7 +1,7 @@
 from datetime import timedelta
 
 from app.engine.forecast import project_actions
-from app.simulation.scenarios import hot_sunny_breeze, post_sunset_purge
+from tests.scenarios import hot_sunny_breeze, post_sunset_purge
 
 
 def test_no_weather_returns_empty(cfg):

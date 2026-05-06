@@ -39,17 +39,21 @@ class OutdoorReading:
 
 
 class SensorSource(Protocol):
-    """Phase 2 swap line: ManualSensorSource (Phase 1) → HomeAssistantSensorSource (Phase 2)."""
+    """Per-zone temp/humidity reader.
+
+    HA-first: HomeAssistantSensorSource subscribes to Aqara WS state. Falls
+    back to DbCachedSensorSource (latest persisted row) when HA is offline.
+    """
 
     def latest(self) -> dict[str, ZoneSensorReading]:
         ...
 
 
 class SunshineSource(Protocol):
-    """Phase 2 swap line for the SW-glazing light sensor.
+    """SW-glazing light reader.
 
-    Phase 1: ManualSunshineSource — reads the latest 0–5 scale entry from the DB.
-    Phase 2: HASunshineSource — subscribes to the Aqara Light Sensor T1.
+    HomeAssistantSunshineSource (Aqara T1) when HA is up, otherwise
+    DbCachedSunshineSource serves the latest persisted row.
     """
 
     def latest(self) -> SunshineReading | None:
@@ -57,10 +61,11 @@ class SunshineSource(Protocol):
 
 
 class ActuatorStateSource(Protocol):
-    """Phase 2 swap line for the physical state of blinds + windows.
+    """Latest known physical state of blinds + windows.
 
-    Phase 1: ManualActuatorStateSource — reads the latest manual entry per actuator.
-    Phase 2: HAActuatorStateSource — subscribes to cover.position changes from HA.
+    HomeAssistantCoverSource (Tahoma covers) for blinds when HA is up;
+    DbCachedActuatorStateSource for HA-down recovery and any actuators
+    HA doesn't track (e.g. casement windows).
     """
 
     def latest(self) -> CurrentActuatorState:

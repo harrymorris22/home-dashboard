@@ -4,7 +4,7 @@ from app.engine.classifier import build_facts
 from app.engine.combine import combine, run_rules
 from app.engine.rules import Rule
 from app.engine.types import RuleOutput
-from app.simulation.scenarios import hot_sunny_breeze
+from tests.scenarios import hot_sunny_breeze
 
 
 def _facts(cfg):

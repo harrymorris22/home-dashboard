@@ -90,13 +90,6 @@ export type StateResponse = {
   next_actions: NextAction[];
 };
 
-export type SunshineScaleItem = { step: number; label: string; lux: number };
-
-export type SimulateResponse = {
-  scenario_name: string;
-  recommendations: Recommendations;
-};
-
 export type HistoryPoint = {
   ts: string;
   zone: string;

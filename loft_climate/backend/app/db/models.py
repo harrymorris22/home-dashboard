@@ -42,14 +42,9 @@ class WeatherCache(Base):
     payload_json: Mapped[str] = mapped_column(Text, nullable=False)
 
 
-class Feedback(Base):
-    __tablename__ = "feedback"
-
-    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
-    ts: Mapped[datetime] = mapped_column(DateTime(timezone=True), index=True, nullable=False)
-    action_taken: Mapped[str | None] = mapped_column(Text, nullable=True)
-    felt_right: Mapped[str | None] = mapped_column(String(16), nullable=True)  # yes/no/unsure
-    note: Mapped[str | None] = mapped_column(Text, nullable=True)
+# Feedback model removed in v0.6.0 — table left on disk because the project
+# uses Base.metadata.create_all (no Alembic). Re-introduce the model if a
+# feedback feature returns; the table is still there.
 
 
 class ActuatorState(Base):

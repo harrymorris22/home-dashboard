@@ -1,22 +1,47 @@
+"""Coverage for the API surface that survived v0.6.0.
+
+The Entry + Simulate routes are gone; readings now land via the
+slow-tick HA snapshot path. These tests exercise the read side of
+that path: /api/state, /api/history, /api/config, /healthz.
+
+Setup writes Reading rows directly via the repo (the v0.6 production
+path is PushScheduler._tick_slow → repo.insert_reading_batch).
+"""
+from __future__ import annotations
+
+from datetime import datetime, timedelta, timezone
+
 from fastapi.testclient import TestClient
 
+from app.db import repo
+from app.db.models import Reading
+from app.db.session import session_scope
 from app.main import create_app
+
+
+def _seed_readings():
+    """Mimic what the slow-tick snapshot task writes."""
+    now = datetime.now(tz=timezone.utc)
+    rows = [
+        Reading(ts=now, zone="mezzanine", temp_c=24.0, humidity_pct=50.0,
+                lux_indoor=5000.0, source="ha"),
+        Reading(ts=now, zone="downstairs", temp_c=22.0, humidity_pct=50.0,
+                lux_indoor=None, source="ha"),
+        Reading(ts=now, zone="ceiling_apex", temp_c=26.0, humidity_pct=None,
+                lux_indoor=None, source="ha"),
+        Reading(ts=now, zone="bedroom", temp_c=23.0, humidity_pct=55.0,
+                lux_indoor=None, source="ha"),
+    ]
+    with session_scope() as session:
+        repo.insert_reading_batch(session, rows)
+        session.commit()
 
 
 def test_state_endpoint_returns_recommendations_with_no_weather():
     """No OWM key set in test env → weather=None → degraded mode, no crash."""
+    _seed_readings()
     app = create_app()
     client = TestClient(app)
-    # Submit readings first.
-    payload = {
-        "zones": {
-            "mezzanine":    {"temp_c": 24.0, "humidity_pct": 50, "lux_indoor": 5000},
-            "downstairs":   {"temp_c": 22.0, "humidity_pct": 50},
-            "ceiling_apex": {"temp_c": 26.0},
-            "bedroom":      {"temp_c": 23.0, "humidity_pct": 55},
-        },
-    }
-    client.post("/api/readings", json=payload)
     resp = client.get("/api/state")
     assert resp.status_code == 200
     data = resp.json()
@@ -28,27 +53,6 @@ def test_state_endpoint_returns_recommendations_with_no_weather():
     assert "by_zone" in rec
     # Offline banner prompt expected.
     assert any("offline" in p.lower() for p in rec["prompts"])
-
-
-def test_simulate_endpoint_walks_a_scenario():
-    app = create_app()
-    client = TestClient(app)
-    resp = client.post("/api/simulate", json={"scenario_name": "hot_sunny_breeze"})
-    assert resp.status_code == 200
-    data = resp.json()
-    rec = data["recommendations"]
-    assert rec["by_blind_group"]["mezz"]["blind_pct"] == 100
-    assert rec["by_zone"]["mezzanine"]["window_open"] is True
-
-
-def test_simulate_lists_scenarios():
-    app = create_app()
-    client = TestClient(app)
-    resp = client.get("/api/simulate/scenarios")
-    assert resp.status_code == 200
-    names = resp.json()["scenarios"]
-    assert "hot_sunny_breeze" in names
-    assert "rain_override" in names
 
 
 def test_config_get_and_put_roundtrip():
@@ -73,18 +77,13 @@ def test_config_put_invariant_violation_returns_422():
     assert resp.status_code == 422
 
 
-def test_history_returns_inserted_readings():
+def test_history_returns_seeded_readings():
+    """History reads from the readings table — populated in v0.6 by the
+    slow-tick snapshot path. Setup writes rows directly via repo.
+    """
+    _seed_readings()
     app = create_app()
     client = TestClient(app)
-    payload = {
-        "zones": {
-            "mezzanine":    {"temp_c": 24.0},
-            "downstairs":   {"temp_c": 22.0},
-            "ceiling_apex": {"temp_c": 26.0},
-            "bedroom":      {"temp_c": 23.0},
-        },
-    }
-    client.post("/api/readings", json=payload)
     resp = client.get("/api/history")
     assert resp.status_code == 200
     data = resp.json()

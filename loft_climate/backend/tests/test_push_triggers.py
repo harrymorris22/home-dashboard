@@ -8,7 +8,7 @@ from zoneinfo import ZoneInfo
 from app.config.loader import load_config
 from app.engine.engine import decide
 from app.push.triggers import DedupeRecord, DedupeRepo, evaluate_triggers
-from app.simulation.scenarios import (
+from tests.scenarios import (
     bedroom_overheat_safety,
     hot_sunny_breeze,
     mild_outdoor_warm_indoor,

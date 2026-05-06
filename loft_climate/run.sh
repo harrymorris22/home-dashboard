@@ -28,6 +28,7 @@ mapping = {
     "vapid_subject":             "VAPID_SUBJECT",
     "notify_email_smtp_password":"NOTIFY_EMAIL_SMTP_PASSWORD",
     "notify_email_to":           "NOTIFY_EMAIL_TO",
+    "data_retention_days":       "DATA_RETENTION_DAYS",
 }
 
 for src, dst in mapping.items():

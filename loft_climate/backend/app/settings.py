@@ -55,6 +55,12 @@ class Settings(BaseSettings):
     notify_email_smtp_password: str = ""
     notify_email_to: str = ""
 
+    # Phase 2.6: HA → DB snapshot retention.
+    # The slow-tick janitor deletes readings/sunshine/actuator_state rows
+    # older than this many days, once per UTC day. History only ever shows
+    # 7 days; older rows are dead weight on a Pi SD card.
+    data_retention_days: int = Field(default=90, ge=7, le=3650)
+
 
 _settings: Settings | None = None
 

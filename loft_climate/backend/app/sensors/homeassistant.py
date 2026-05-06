@@ -5,8 +5,8 @@ serves the latest state per entity from an in-memory cache. Auto-reconnects on
 disconnect with exponential backoff.
 
 The `HomeAssistantSensorSource` adapter implements the `SensorSource` Protocol
-(same shape as `ManualSensorSource`) so swapping it in is a one-line change in
-the route handlers.
+(same shape as `DbCachedSensorSource`) so it composes cleanly with the
+DB-cached fallback inside `CompositeSensorSource`.
 """
 from __future__ import annotations
 

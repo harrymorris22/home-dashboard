@@ -1,6 +1,9 @@
-"""Named scenario builders. Each returns a Snapshot ready for engine.decide().
+"""Named scenario builders for engine matrix tests.
 
-Used by /api/simulate, the dev UI, and tests covering matrix rows.
+Each function returns a Snapshot ready for engine.decide(). Test-only
+since v0.6.0 — the production /api/simulate route was removed when the
+Simulate UI was deleted. Living here keeps test coverage of the engine
+matrix without shipping fixture code in the production image.
 """
 from __future__ import annotations
 

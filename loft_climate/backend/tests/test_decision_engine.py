@@ -1,7 +1,7 @@
 """One test per matrix row + edge cases."""
 from app.config.schema import ConfigV1
 from app.engine.engine import decide
-from app.simulation.scenarios import (
+from tests.scenarios import (
     apex_stratification,
     bedroom_overheat_safety,
     bedtime_too_warm,
@@ -127,7 +127,7 @@ def test_buggy_rule_does_not_500(cfg: ConfigV1):
     """A rule that throws must be isolated."""
     from app.engine.engine import decide as do_decide
     from app.engine.rules import ALL_RULES, Rule
-    from app.simulation.scenarios import hot_sunny_breeze
+    from tests.scenarios import hot_sunny_breeze
 
     def boom(_):
         raise RuntimeError("boom")

@@ -17,13 +17,16 @@ from __future__ import annotations
 import asyncio
 import logging
 import smtplib
-from datetime import datetime, timedelta, timezone
+from datetime import date, datetime, timedelta, timezone
 from email.message import EmailMessage
 from zoneinfo import ZoneInfo
 
+from sqlalchemy import delete
 from sqlalchemy.orm import Session
 
 from app.config.loader import load_config
+from app.db import repo
+from app.db.models import ActuatorState, Reading, Sunshine
 from app.db.session import session_scope
 from app.engine.engine import decide
 from app.push import repo as push_repo
@@ -32,7 +35,7 @@ from app.push.triggers import DedupeRecord, evaluate_triggers
 from app.push.types import PushPayload, TriggerDecision
 from app.push.vapid import VapidKeys
 from app.settings import get_settings
-from app.snapshot.service import build_full_state, now_utc
+from app.snapshot.service import build_full_state, now_utc, snapshot_to_rows
 
 log = logging.getLogger(__name__)
 
@@ -60,6 +63,10 @@ class PushScheduler:
         self._last_global_scenario: str | None = None
         # Recovery push tracking: subscription_id → datetime when recovery push sent
         self._recovery_sent: dict[int, datetime] = {}
+        # Snapshot retention: last UTC date the janitor ran. Reset on process
+        # restart, which is fine — the next slow tick re-runs that day.
+        # DELETE on already-pruned rows is a no-op.
+        self._last_prune_date: date | None = None
 
     async def start(self) -> None:
         self._stop.clear()
@@ -138,11 +145,45 @@ class PushScheduler:
             if not cfg.notifications.enabled:
                 return
             bundle = await build_full_state(session, self.ha_client)
+            now_u = now_utc()
+
+            # Snapshot persistence — wrapped in its own try/except so a
+            # transient disk/lock failure can't break push dispatch
+            # downstream. See plan eng-review 1B.
+            try:
+                rows = snapshot_to_rows(bundle, now_u)
+                if rows.readings:
+                    repo.insert_reading_batch(session, rows.readings)
+                if rows.sunshine is not None:
+                    repo.insert_sunshine(session, rows.sunshine)
+                if rows.actuators:
+                    repo.insert_actuator_states(session, rows.actuators)
+                session.commit()
+            except Exception:
+                log.exception("[snapshot-persist] failed; pushes continue")
+                session.rollback()
+
             await self._dispatch_decisions(session, bundle, vapid, slow=True)
             # Staleness recovery
             await self._staleness_recovery(session, vapid, cfg)
             # GC dedupe
-            push_repo.SqliteDedupeRepo(session).gc(now_utc(), max_age_hours=24)
+            push_repo.SqliteDedupeRepo(session).gc(now_u, max_age_hours=24)
+
+            # Daily janitor — once per UTC day, prune snapshot rows older
+            # than data_retention_days. Idempotent across restarts; if
+            # _last_prune_date resets to None the DELETE on already-pruned
+            # rows is a no-op.
+            today = now_u.date()
+            if self._last_prune_date != today:
+                try:
+                    cutoff = now_u - timedelta(
+                        days=get_settings().data_retention_days
+                    )
+                    _prune_old_rows(session, cutoff)
+                    self._last_prune_date = today
+                except Exception:
+                    log.exception("[snapshot-prune] failed; non-fatal")
+                    session.rollback()
 
     # ---------------------------------------------------------------------
 
@@ -257,3 +298,32 @@ class PushScheduler:
 
 def _strip_mailto(s: str) -> str:
     return s[len("mailto:") :] if s.startswith("mailto:") else s
+
+
+def _prune_old_rows(session: Session, cutoff: datetime) -> None:
+    """Delete snapshot rows older than `cutoff`. Logs per-table delete counts.
+
+    Three tables share the lifecycle: ``readings`` (HA temps + humidity),
+    ``sunshine`` (SW lux), ``actuator_state`` (blind positions). A 7-day
+    History window means rows older than 90d (default) are dead weight.
+
+    SQLite WAL allows concurrent reads during the DELETE so /api/history
+    isn't blocked while this runs.
+    """
+    counts: dict[str, int] = {}
+    for table_name, model in (
+        ("readings", Reading),
+        ("sunshine", Sunshine),
+        ("actuator_state", ActuatorState),
+    ):
+        result = session.execute(delete(model).where(model.ts < cutoff))
+        counts[table_name] = result.rowcount or 0
+    session.commit()
+    total = sum(counts.values())
+    if total:
+        log.info(
+            "[snapshot-prune] removed %d rows older than %s (%s)",
+            total,
+            cutoff.isoformat(),
+            ", ".join(f"{k}={v}" for k, v in counts.items()),
+        )

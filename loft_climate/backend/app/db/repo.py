@@ -8,7 +8,6 @@ from sqlalchemy.orm import Session
 
 from app.db.models import (
     ActuatorState,
-    Feedback,
     Reading,
     RecommendationLog,
     Sunshine,
@@ -21,12 +20,6 @@ def insert_reading_batch(session: Session, rows: Iterable[Reading]) -> list[int]
     session.add_all(objs)
     session.flush()
     return [r.id for r in objs]
-
-
-def insert_feedback(session: Session, fb: Feedback) -> int:
-    session.add(fb)
-    session.flush()
-    return fb.id
 
 
 def latest_per_zone(session: Session) -> dict[str, Reading]:

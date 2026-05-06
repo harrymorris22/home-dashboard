@@ -29,6 +29,7 @@ options:
   vapid_subject: "mailto:harrymorris22@gmail.com"
   notify_email_smtp_password: ""
   notify_email_to: ""
+  data_retention_days: 90
   log_level: info
 schema:
   owm_api_key: str?
@@ -40,4 +41,5 @@ schema:
   vapid_subject: str?
   notify_email_smtp_password: str?
   notify_email_to: str?
+  data_retention_days: "int(7,3650)?"
   log_level: list(trace|debug|info|notice|warning|error|fatal)?

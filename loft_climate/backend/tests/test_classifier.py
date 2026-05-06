@@ -9,7 +9,7 @@ from app.engine.classifier import (
     classify_wind,
     classify_zone_thermal,
 )
-from app.simulation.scenarios import (
+from tests.scenarios import (
     cold_cloudy,
     hot_sunny_breeze,
     hot_sunny_still,

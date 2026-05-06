@@ -1,3 +1,15 @@
+"""DB-cached sensor sources.
+
+Each source returns the latest row per key from SQLite. Source-agnostic:
+in v0.6+ those rows are written by the HA snapshot task in
+PushScheduler._tick_slow with ``source="ha"``. Pre-v0.6 they were
+written by the manual entry form with ``source="manual"``. Read path is
+identical either way — we just hand back the freshest persisted row.
+
+Used as the second arm of CompositeSensorSource: HA's in-memory cache
+takes priority when fresh; this fallback covers HA-down windows by
+serving the last persisted snapshot.
+"""
 from __future__ import annotations
 
 from sqlalchemy.orm import Session
@@ -10,8 +22,8 @@ from app.sensors.source import (
 )
 
 
-class ManualSensorSource:
-    """Reads the latest manually-entered Reading per zone."""
+class DbCachedSensorSource:
+    """Reads the latest Reading row per zone from the DB."""
 
     def __init__(self, session: Session) -> None:
         self.session = session
@@ -29,8 +41,8 @@ class ManualSensorSource:
         return out
 
 
-class ManualSunshineSource:
-    """Reads the latest manually-entered Sunshine row (0–5 scale → lux)."""
+class DbCachedSunshineSource:
+    """Reads the latest Sunshine row from the DB."""
 
     def __init__(self, session: Session) -> None:
         self.session = session
@@ -42,8 +54,8 @@ class ManualSunshineSource:
         return SunshineReading(ts=row.ts, lux=row.lux, scale=row.scale)
 
 
-class ManualActuatorStateSource:
-    """Reads the latest manually-entered physical state for blinds + windows."""
+class DbCachedActuatorStateSource:
+    """Reads the latest physical actuator state per key from the DB."""
 
     def __init__(self, session: Session) -> None:
         self.session = session
