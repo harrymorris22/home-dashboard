@@ -38,6 +38,9 @@ class Settings(BaseSettings):
     # Outdoor microclimate sensor mapping (e.g. SwitchBot meter on the building).
     # Empty means: keep using OWM forecast values.
     ha_outdoor_entities: dict[str, str] = Field(default_factory=dict)
+    # Single SW glazing lux entity (Phase 2: Aqara Light Sensor T1).
+    # Empty = manual scale only.
+    ha_sunshine_entity: str = ""
 
 
 _settings: Settings | None = None

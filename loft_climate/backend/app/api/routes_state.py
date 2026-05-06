@@ -11,7 +11,11 @@ from app.db.session import get_session
 from app.engine.engine import decide
 from app.engine.forecast import project_actions
 from app.sensors.composite import CompositeSensorSource
-from app.sensors.homeassistant import HomeAssistantOutdoorSource, HomeAssistantSensorSource
+from app.sensors.homeassistant import (
+    HomeAssistantOutdoorSource,
+    HomeAssistantSensorSource,
+    HomeAssistantSunshineSource,
+)
 from app.sensors.manual import (
     ManualActuatorStateSource,
     ManualSensorSource,
@@ -42,11 +46,17 @@ async def get_state(request: Request, session: Session = Depends(get_session)):
     outdoor_source = None
     if ha_client is not None and settings.ha_outdoor_entities:
         outdoor_source = HomeAssistantOutdoorSource(ha_client, settings.ha_outdoor_entities)
+    # HA-backed sunshine when configured AND has a value; fall back to manual entry otherwise.
+    sunshine_source = ManualSunshineSource(session)
+    if ha_client is not None and settings.ha_sunshine_entity:
+        ha_sun = HomeAssistantSunshineSource(ha_client, settings.ha_sunshine_entity)
+        if ha_sun.latest() is not None:
+            sunshine_source = ha_sun
     builder = SnapshotBuilder(
         session,
         _build_sensor_source(session, request),
         cfg,
-        sunshine_source=ManualSunshineSource(session),
+        sunshine_source=sunshine_source,
         actuator_state_source=ManualActuatorStateSource(session),
         outdoor_source=outdoor_source,
     )

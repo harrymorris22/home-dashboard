@@ -12,6 +12,7 @@ sun position, and a configurable rule engine.
 | `ha_token` | A long-lived access token for Home Assistant. Create one at *Profile → Security → Long-Lived Access Tokens*. |
 | `ha_entity_map` | JSON object mapping zone IDs to their HA entity IDs. See below. |
 | `ha_outdoor_entities` | JSON object mapping outdoor sensor entities. See below. |
+| `ha_sunshine_entity` | Entity ID of the SW glazing lux sensor (e.g. Aqara Light Sensor T1). When set, replaces the manual 0-5 sunshine scale. |
 | `log_level` | Standard log level. Default `info`. |
 
 ### `ha_entity_map` format

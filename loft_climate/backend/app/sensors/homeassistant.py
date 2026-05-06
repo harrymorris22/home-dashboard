@@ -19,7 +19,7 @@ from typing import Any
 from websockets.asyncio.client import connect as ws_connect
 from websockets.exceptions import ConnectionClosed
 
-from app.sensors.source import OutdoorReading, ZoneSensorReading
+from app.sensors.source import OutdoorReading, SunshineReading, ZoneSensorReading
 
 log = logging.getLogger(__name__)
 
@@ -195,6 +195,30 @@ def _parse_ts(s: str | None) -> datetime:
         return datetime.fromisoformat(s.replace("Z", "+00:00"))
     except ValueError:
         return datetime.now(tz=timezone.utc)
+
+
+class HomeAssistantSunshineSource:
+    """SW glazing lux from HA (Phase 2: Aqara Light Sensor T1)."""
+
+    def __init__(self, client: HAClient, entity_id: str) -> None:
+        self.client = client
+        self.entity_id = entity_id
+
+    def latest(self) -> SunshineReading | None:
+        if not self.entity_id:
+            return None
+        s = self.client.get_state(self.entity_id)
+        if s is None:
+            return None
+        try:
+            lux = float(s["state"])
+        except (TypeError, ValueError, KeyError):
+            return None
+        return SunshineReading(
+            ts=_parse_ts(s.get("last_updated")),
+            lux=lux,
+            scale=None,  # real sensor reading, not the manual 0–5 scale
+        )
 
 
 class HomeAssistantOutdoorSource:

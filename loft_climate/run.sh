@@ -23,6 +23,7 @@ mapping = {
     "ha_token":            "HA_TOKEN",
     "ha_entity_map":       "HA_ENTITY_MAP",
     "ha_outdoor_entities": "HA_OUTDOOR_ENTITIES",
+    "ha_sunshine_entity":  "HA_SUNSHINE_ENTITY",
 }
 
 for src, dst in mapping.items():
