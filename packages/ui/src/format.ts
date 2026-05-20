@@ -27,3 +27,14 @@ export function formatBlind(pct: number): string {
   if (rounded === 100) return "Down (100%)";
   return `${rounded}%`;
 }
+
+export function formatPercent(p: number | null | undefined, decimals = 1): string {
+  if (p === null || p === undefined || Number.isNaN(p)) return "—";
+  return `${p.toFixed(decimals)}%`;
+}
+
+export function formatPrice(value: number | null | undefined, currency: string): string {
+  if (value === null || value === undefined || Number.isNaN(value)) return "—";
+  const symbol = currency === "GBP" ? "£" : currency === "USD" ? "$" : currency === "EUR" ? "€" : "";
+  return symbol ? `${symbol}${value.toFixed(2)}` : `${value.toFixed(2)} ${currency}`;
+}

@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 import { api } from "../api/client";
 import { useConfig } from "../api/hooks";
 import { ComfortBandsForm } from "../components/ComfortBandsForm";
-import { Card } from "../components/glass/Card";
+import { Card } from "../_shared/Card";
 
 export function Config() {
   const { data, error, mutate } = useConfig();

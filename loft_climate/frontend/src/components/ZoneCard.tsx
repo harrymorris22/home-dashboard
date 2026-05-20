@@ -1,6 +1,6 @@
-import { Card } from "./glass/Card";
-import { type Urgency, urgencyText } from "../lib/urgency";
-import { formatHumidity, formatTemp } from "../lib/format";
+import { Card } from "../_shared/Card";
+import { type Urgency, urgencyText } from "../_shared/urgency";
+import { formatHumidity, formatTemp } from "../_shared/format";
 import { UrgencyDot } from "./UrgencyDot";
 
 export type ZoneCardProps = {

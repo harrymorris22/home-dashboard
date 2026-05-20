@@ -1,6 +1,6 @@
 import { describe, expect, test } from "vitest";
 
-import { ageSecondsToText, relativeTime } from "../time";
+import { ageSecondsToText, relativeTime } from "../../_shared/time";
 
 describe("relativeTime", () => {
   const now = new Date("2026-05-01T12:00:00Z");

@@ -1,5 +1,5 @@
 import type { NextAction } from "../api/types";
-import { Card } from "./glass/Card";
+import { Card } from "../_shared/Card";
 
 const ACTUATOR_LABEL: Record<string, string> = {
   "blind:mezz": "Office blinds",

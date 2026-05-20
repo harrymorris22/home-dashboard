@@ -1,5 +1,5 @@
 import { type Recommendations, type SensorReading, ZONE_IDS, type ZoneId } from "../api/types";
-import { maxUrgency, type Urgency } from "../lib/urgency";
+import { maxUrgency, type Urgency } from "../_shared/urgency";
 import { ZoneCard } from "./ZoneCard";
 
 const LABEL: Record<ZoneId, string> = {

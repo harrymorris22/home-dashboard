@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import useSWR from "swr";
 
 import { fetcher } from "../api/client";
-import { Card } from "../components/glass/Card";
+import { Card } from "../_shared/Card";
 import {
   disablePush,
   enablePush,

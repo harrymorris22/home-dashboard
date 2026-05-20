@@ -1,4 +1,4 @@
-import type { Urgency } from "../lib/urgency";
+import type { Urgency } from "../_shared/urgency";
 
 export type ZoneId = "mezzanine" | "downstairs" | "ceiling_apex" | "bedroom";
 export type BlindGroupId = "mezz" | "downstairs" | "bedroom";

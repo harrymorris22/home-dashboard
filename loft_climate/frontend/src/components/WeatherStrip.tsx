@@ -1,7 +1,7 @@
-import { Card } from "./glass/Card";
+import { Card } from "../_shared/Card";
 import type { SunView, SunshineView, WeatherView } from "../api/types";
-import { formatLux, formatTemp } from "../lib/format";
-import { formatTime } from "../lib/time";
+import { formatLux, formatTemp } from "../_shared/format";
+import { formatTime } from "../_shared/time";
 
 export function WeatherStrip({
   weather,

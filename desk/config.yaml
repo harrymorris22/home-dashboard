@@ -1,0 +1,29 @@
+name: Desk Dashboard
+version: "0.1.0"
+slug: desk_dashboard
+description: Multi-widget desk dashboard for iPad — climate, stocks, calendar, Pi health.
+arch:
+  - aarch64
+  - amd64
+url: https://github.com/harrymorris22/home-dashboard
+init: false
+boot: auto
+startup: services
+host_network: true
+ports:
+  "8001/tcp": 8001
+ports_description:
+  "8001/tcp": Desk dashboard web UI + API
+hassio_api: true
+homeassistant_api: false
+auth_api: false
+map:
+  - addon_config:rw
+options:
+  loft_internal_url: "http://local_loft_climate:8000"
+  ical_url: ""
+  log_level: info
+schema:
+  loft_internal_url: str?
+  ical_url: password?
+  log_level: list(trace|debug|info|notice|warning|error|fatal)?

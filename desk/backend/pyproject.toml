@@ -1,0 +1,40 @@
+[project]
+name = "desk-dashboard-backend"
+version = "0.1.0"
+description = "Multi-widget desk dashboard backend (climate proxy, stocks, calendar, system health)"
+requires-python = ">=3.12"
+dependencies = [
+    "fastapi>=0.115",
+    "uvicorn[standard]>=0.30",
+    "sqlalchemy>=2.0",
+    "pydantic>=2.7",
+    "pydantic-settings>=2.4",
+    "httpx>=0.27",
+    "yfinance>=0.2.40",
+    "icalendar>=5.0",
+    "recurring-ical-events>=2.2",
+    "psutil>=6.0",
+    "python-dotenv>=1.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.2",
+    "pytest-asyncio>=0.23",
+    "ruff>=0.5",
+    "anyio>=4.0",
+    "respx>=0.21",
+    "freezegun>=1.5",
+]
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["tests"]
+pythonpath = ["app"]
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+include = ["app*"]

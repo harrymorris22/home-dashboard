@@ -1,7 +1,7 @@
-import { Card } from "./glass/Card";
+import { Card } from "../_shared/Card";
 import { type Recommendations, ZONE_IDS, BLIND_GROUP_IDS, type ZoneId } from "../api/types";
-import { urgencyText } from "../lib/urgency";
-import { formatBlind } from "../lib/format";
+import { urgencyText } from "../_shared/urgency";
+import { formatBlind } from "../_shared/format";
 import { UrgencyDot } from "./UrgencyDot";
 
 const ZONE_LABEL: Record<ZoneId, string> = {

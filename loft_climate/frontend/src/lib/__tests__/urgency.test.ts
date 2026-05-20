@@ -1,6 +1,6 @@
 import { describe, expect, test } from "vitest";
 
-import { maxUrgency, urgencyClass, urgencyText } from "../urgency";
+import { maxUrgency, urgencyClass, urgencyText } from "../../_shared/urgency";
 
 describe("urgency", () => {
   test("maxUrgency picks highest", () => {

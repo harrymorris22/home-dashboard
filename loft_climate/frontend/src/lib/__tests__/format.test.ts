@@ -1,6 +1,6 @@
 import { describe, expect, test } from "vitest";
 
-import { formatBlind, formatHumidity, formatLux, formatTemp, roundBlind } from "../format";
+import { formatBlind, formatHumidity, formatLux, formatTemp, roundBlind } from "../../_shared/format";
 
 describe("formatTemp", () => {
   test("renders one decimal", () => {

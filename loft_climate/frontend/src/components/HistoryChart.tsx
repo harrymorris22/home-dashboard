@@ -10,7 +10,7 @@ import {
 } from "recharts";
 
 import type { HistoryResponse } from "../api/types";
-import { Card } from "./glass/Card";
+import { Card } from "../_shared/Card";
 
 type Metric = "temp_c" | "humidity_pct" | "lux_indoor";
 

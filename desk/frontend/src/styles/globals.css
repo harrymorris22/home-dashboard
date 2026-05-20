@@ -1,0 +1,75 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Sports HUD design system (strict adherence). Tokens defined in
+ * tailwind-tokens.cjs (synced from packages/ui/). Class names + base
+ * layer styles are intentionally duplicated across desk + loft_climate
+ * for now — extract to @home/ui if a third app appears.
+ */
+
+:root {
+  color-scheme: light;
+}
+
+html, body, #root {
+  min-height: 100vh;
+}
+
+body {
+  margin: 0;
+  font-family: 'Archivo', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+  background: #F1F3F5;
+  color: #0E1016;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+@layer components {
+  /* Card — flat surface, sharp corners, hairline border. */
+  .hud-card {
+    @apply bg-surface text-primary border border-secondary/30 rounded-md p-5;
+  }
+  .hud-card-strong {
+    @apply bg-surface text-primary border-2 border-primary rounded-md p-5;
+  }
+
+  .hud-label {
+    @apply font-sans uppercase tracking-label font-bold text-secondary;
+    font-size: 0.72rem;
+  }
+
+  .hud-display {
+    @apply font-display text-primary;
+    font-size: 4rem;
+    line-height: 1;
+    letter-spacing: -0.03em;
+  }
+
+  .urgency-green {
+    @apply text-secondary;
+  }
+  .urgency-amber {
+    @apply text-primary uppercase tracking-label font-bold;
+  }
+  .urgency-red {
+    @apply text-tertiary uppercase font-display;
+  }
+
+  .hud-button-primary {
+    @apply bg-tertiary text-primary border-0 rounded uppercase tracking-label font-bold;
+    padding: 12px 20px;
+  }
+  .hud-button-secondary {
+    @apply bg-surface text-primary border border-primary rounded uppercase tracking-label font-bold;
+    padding: 11px 19px;
+  }
+
+  /* Stale badge — used on tiles whose data is being served from cache because
+   * the upstream provider failed. */
+  .stale-badge {
+    @apply inline-block px-2 py-0.5 rounded border border-secondary/60 text-secondary uppercase tracking-label;
+    font-size: 0.6rem;
+    font-weight: 700;
+  }
+}

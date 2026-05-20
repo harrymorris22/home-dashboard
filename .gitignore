@@ -1,36 +1,41 @@
+# Existing entries
+.DS_Store
+.venv/
 __pycache__/
 *.pyc
 *.pyo
-.venv/
-.env
-.env.local
-.pytest_cache/
-.ruff_cache/
 node_modules/
 dist/
-build/
+.env
 *.log
 
-# SQLite + live config — the Add-on writes these to /data on the Pi anyway.
-loft_climate/backend/data/climate.db
-loft_climate/backend/data/climate.db-wal
-loft_climate/backend/data/climate.db-shm
+# HA Add-on supervisor runtime files
+/data/
+
+# Frontend build artifacts
+loft_climate/frontend/dist/
+loft_climate/frontend/.vite/
+desk/frontend/dist/
+desk/frontend/.vite/
+
+# Python venvs
+loft_climate/backend/.venv/
+desk/backend/.venv/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+
+# Local-only data (HA Supervisor manages /data/ in prod)
+loft_climate/backend/data/*.db
+loft_climate/backend/data/*.db-shm
+loft_climate/backend/data/*.db-wal
 loft_climate/backend/data/config.json
 loft_climate/backend/data/vapid_keys.json
+loft_climate/backend/*.egg-info/
+desk/backend/*.egg-info/
+desk/backend/data/
 
-# Python build / install artefacts.
-*.egg-info/
-loft_climate/backend/home_dashboard_backend.egg-info/
-
-# Vite cache / type build cache.
-loft_climate/frontend/tsconfig.tsbuildinfo
-
-.coverage
-coverage/
-playwright-report/
-test-results/
-.DS_Store
-
-# Plan file lives in the user's local Claude state, not the project.
-.claude/plans/
-.claude/cache/
+# Vite TS build artifact
+*.tsbuildinfo

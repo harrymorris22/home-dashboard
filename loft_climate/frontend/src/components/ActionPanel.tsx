@@ -1,6 +1,6 @@
 import type { CurrentState, Recommendations, ZoneId, BlindGroupId } from "../api/types";
-import { Card } from "./glass/Card";
-import { type Urgency, urgencyText, urgencyClass, maxUrgency } from "../lib/urgency";
+import { Card } from "../_shared/Card";
+import { type Urgency, urgencyText, urgencyClass, maxUrgency } from "../_shared/urgency";
 import { UrgencyDot } from "./UrgencyDot";
 
 const ZONE_LABEL: Record<string, string> = {

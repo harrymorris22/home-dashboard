@@ -4,8 +4,8 @@ import { NextActionsPanel } from "../components/NextActionsPanel";
 import { WeatherStrip } from "../components/WeatherStrip";
 import { ZoneGrid } from "../components/ZoneGrid";
 import { RecommendationsPanel } from "../components/RecommendationsPanel";
-import { Card } from "../components/glass/Card";
-import { relativeTime } from "../lib/time";
+import { Card } from "../_shared/Card";
+import { relativeTime } from "../_shared/time";
 
 export function Dashboard() {
   const { data, error, isLoading } = useDashboardState();

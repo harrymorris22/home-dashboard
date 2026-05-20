@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 import { api } from "../api/client";
 import { useConfig } from "../api/hooks";
 import { ZONE_IDS, type ZoneId } from "../api/types";
-import { Card } from "./glass/Card";
+import { Card } from "../_shared/Card";
 
 type ZoneCfg = {
   comfort_min: number;

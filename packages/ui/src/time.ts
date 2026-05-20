@@ -26,3 +26,18 @@ export function ageSecondsToText(seconds: number | null | undefined): string {
   if (hours < 24) return `${hours.toFixed(1)}h old`;
   return `${(hours / 24).toFixed(1)}d old`;
 }
+
+export function untilText(iso: string | null | undefined, now: Date = new Date()): string {
+  if (!iso) return "—";
+  const then = new Date(iso);
+  const seconds = Math.round((then.getTime() - now.getTime()) / 1000);
+  if (seconds < 0) return "now";
+  if (seconds < 60) return `in ${seconds}s`;
+  const minutes = Math.round(seconds / 60);
+  if (minutes < 60) return `in ${minutes} min`;
+  const hours = Math.floor(minutes / 60);
+  const rem = minutes % 60;
+  if (hours < 24) return rem === 0 ? `in ${hours}h` : `in ${hours}h${rem}m`;
+  const days = Math.round(hours / 24);
+  return `in ${days}d`;
+}

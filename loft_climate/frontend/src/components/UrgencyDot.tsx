@@ -1,4 +1,4 @@
-import { type Urgency, urgencyClass } from "../lib/urgency";
+import { type Urgency, urgencyClass } from "../_shared/urgency";
 
 export function UrgencyDot({ urgency, label }: { urgency: Urgency; label?: string }) {
   return (

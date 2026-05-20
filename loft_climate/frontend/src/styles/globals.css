@@ -30,11 +30,13 @@ body {
 }
 
 @layer components {
-  /* Card — flat surface, sharp corners, hairline border. */
-  .glass {
+  /* Card — flat surface, sharp corners, hairline border.
+   * Renamed from .glass / .glass-strong in v0.7.0 (the dark-glassmorphism
+   * era is long gone — the names lied about what they did). */
+  .hud-card {
     @apply bg-surface text-primary border border-secondary/30 rounded-md p-5;
   }
-  .glass-strong {
+  .hud-card-strong {
     @apply bg-surface text-primary border-2 border-primary rounded-md p-5;
   }
 
