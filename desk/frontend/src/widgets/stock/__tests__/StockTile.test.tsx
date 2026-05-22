@@ -47,6 +47,7 @@ describe("StockTile", () => {
     expect(screen.getByText("LQQ3.L")).toBeInTheDocument();
     expect(screen.getByText("£12.45")).toBeInTheDocument();
     expect(screen.getByText(/2\.47%/)).toBeInTheDocument();
+    expect(screen.getByLabelText("last updated")).toBeInTheDocument();
   });
 
   test("shows stale badge when data is stale", () => {

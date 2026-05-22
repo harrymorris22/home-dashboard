@@ -1,5 +1,5 @@
 name: Desk Dashboard
-version: "0.1.0"
+version: "0.2.0"
 slug: desk_dashboard
 description: Multi-widget desk dashboard for iPad — climate, stocks, calendar, Pi health.
 arch:

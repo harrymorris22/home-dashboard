@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { Card } from "../../_shared/Card";
 import { formatPercent } from "../../_shared/format";
 import { useSystem } from "../../api/hooks";
+import { LastUpdated } from "../../components/LastUpdated";
 
 function formatTemp(t: number | null): string {
   if (t === null) return "—";
@@ -45,7 +46,10 @@ export function SystemTile() {
       onKeyDown={(e) => (e.key === "Enter" || e.key === " ") && onClick()}
       data-testid="system-tile"
     >
-      <h2 className="hud-label">System</h2>
+      <div className="flex items-center justify-between">
+        <h2 className="hud-label">System</h2>
+        <LastUpdated ts={data.last_ping_ts} />
+      </div>
       <div className="grid grid-cols-2 gap-1 text-sm">
         <span className="text-secondary">CPU temp</span>
         <span className="text-primary font-bold text-right">{formatTemp(data.cpu_temp_c)}</span>

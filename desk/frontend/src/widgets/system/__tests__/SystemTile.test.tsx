@@ -45,6 +45,7 @@ describe("SystemTile", () => {
     expect(screen.getByText("43°C")).toBeInTheDocument();
     expect(screen.getByText("67%")).toBeInTheDocument();
     expect(screen.getByText(/100%/)).toBeInTheDocument();
+    expect(screen.getByLabelText("last updated")).toBeInTheDocument();
   });
 
   test("thermal missing renders dash, not crash (critical-gap)", () => {

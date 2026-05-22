@@ -21,11 +21,23 @@ async function request<T>(url: string, init?: RequestInit): Promise<T> {
     headers: { "content-type": "application/json", ...(init?.headers ?? {}) },
   });
   if (!res.ok) {
-    let detail: unknown = null;
+    // Read as text first so we can fall back if JSON parsing fails — a
+    // Response body can only be consumed once, so we can't try .json()
+    // then .text() on the same Response.
+    const text = await res.text();
+    let detail: unknown;
     try {
-      detail = await res.json();
+      const body = JSON.parse(text);
+      // FastAPI HTTPException(detail=X) wraps the response body as
+      // {"detail": X}. Unwrap so callers see the inner value uniformly.
+      // Convention: every backend error response in this app flows through
+      // FastAPI's HTTPException, so the unwrap is always safe.
+      detail =
+        body && typeof body === "object" && "detail" in body
+          ? (body as { detail: unknown }).detail
+          : body;
     } catch {
-      detail = await res.text();
+      detail = text;
     }
     throw new ApiError(res.status, detail);
   }

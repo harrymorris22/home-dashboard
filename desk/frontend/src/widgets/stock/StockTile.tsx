@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { Card } from "../../_shared/Card";
 import { formatPercent, formatPrice } from "../../_shared/format";
 import { useStock } from "../../api/hooks";
+import { LastUpdated } from "../../components/LastUpdated";
 import { StaleBadge } from "../../components/StaleBadge";
 import { Sparkline } from "./Sparkline";
 
@@ -47,7 +48,10 @@ export function StockTile({ ticker = "LQQ3.L" }: { ticker?: string }) {
     >
       <div className="flex items-center justify-between">
         <h2 className="hud-label">{data.ticker}</h2>
-        {data.stale && <StaleBadge />}
+        <div className="flex items-center gap-2">
+          {data.stale && <StaleBadge />}
+          <LastUpdated ts={data.last_success_at} />
+        </div>
       </div>
       <div className="font-display text-3xl text-primary">{formatPrice(data.price, data.currency)}</div>
       <div className="text-sm text-secondary">

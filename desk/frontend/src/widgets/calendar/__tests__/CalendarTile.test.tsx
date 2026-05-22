@@ -43,9 +43,11 @@ describe("CalendarTile", () => {
         next: { title: "Standup", starts_at: inFuture, location: "Room A", all_day: false },
         today: [],
       },
+      dataUpdatedAt: Date.now(),
     });
     expect(screen.getByText("Standup")).toBeInTheDocument();
     expect(screen.getByText(/in /)).toBeInTheDocument();
+    expect(screen.getByLabelText("last updated")).toBeInTheDocument();
   });
 
   test("no upcoming events", () => {

@@ -47,26 +47,39 @@ export type SystemHealth = {
   last_ping_ts: string | null;
 };
 
+// Cadences chosen per upstream volatility:
+//   Climate — 10s, loft has live HA WS data; cheap to poll
+//   Stock   — 60s, Yahoo data is 15–20min delayed anyway
+//   Calendar — 2min, events change rarely
+//   System  — 10s, psutil + SQLite aggregate is local & cheap
+// revalidateOnFocus is SWR's default; making it explicit for clarity so
+// the next reader doesn't wonder whether it's on.
+const FOCUS = { revalidateOnFocus: true } as const;
+
 export function useClimate() {
   return useSWR<ClimateData>("/api/widgets/climate", fetcher, {
-    refreshInterval: 60_000,
+    refreshInterval: 10_000,
+    ...FOCUS,
   });
 }
 
 export function useStock(ticker = "LQQ3.L") {
   return useSWR<StockData>(`/api/widgets/stock/${ticker}`, fetcher, {
     refreshInterval: 60_000,
+    ...FOCUS,
   });
 }
 
 export function useCalendar() {
   return useSWR<CalendarData>("/api/widgets/calendar/next", fetcher, {
-    refreshInterval: 5 * 60_000,
+    refreshInterval: 2 * 60_000,
+    ...FOCUS,
   });
 }
 
 export function useSystem() {
   return useSWR<SystemHealth>("/api/widgets/system/health", fetcher, {
-    refreshInterval: 30_000,
+    refreshInterval: 10_000,
+    ...FOCUS,
   });
 }

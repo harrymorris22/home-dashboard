@@ -49,6 +49,8 @@ describe("ClimateTile", () => {
     });
     expect(screen.getByText(/hot sunny breeze/i)).toBeInTheDocument();
     expect(screen.getByText(/24\.5/)).toBeInTheDocument();
+    // LastUpdated badge renders when data is present.
+    expect(screen.getByLabelText("last updated")).toBeInTheDocument();
   });
 
   test("shows stale badge when data is stale", () => {
