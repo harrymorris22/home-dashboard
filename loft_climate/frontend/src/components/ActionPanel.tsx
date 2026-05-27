@@ -106,12 +106,27 @@ export function ActionPanel({
 
   const allNeutral = blinds === "no change" && windows === "no change";
 
+  // HA cover state should populate `currentState.blinds` for every group the
+  // engine fired on. When it's empty AND we DO have blind recommendations,
+  // Tahoma is offline or the entity mapping is broken. Surface it directly
+  // so the user doesn't read the recommendation as a status statement.
+  const hasBlindRecs = Object.keys(rec.by_blind_group).length > 0;
+  const knownBlinds = Object.keys(currentState?.blinds ?? {}).length;
+  const blindStateMissing = hasBlindRecs && knownBlinds === 0;
+
   return (
     <Card strong className="space-y-3">
       <div className="flex items-center justify-between">
         <span className="hud-label">What to do</span>
         <UrgencyDot urgency={urgency} label={urgency} />
       </div>
+
+      {blindStateMissing && (
+        <div className="border border-primary rounded p-2 text-xs uppercase tracking-label font-bold text-primary">
+          ⚠ Blind state unknown — Tahoma not reporting. Recommendations below
+          are not based on current position.
+        </div>
+      )}
 
       {allNeutral ? (
         <p className={`font-display text-2xl sm:text-3xl uppercase leading-snug ${urgencyText[urgency]}`}>
@@ -159,6 +174,10 @@ export function ActionPanel({
               } else {
                 phrase += ` (currently ${blindCurrent(currentBlind)})`;
               }
+            } else {
+              // No HA cover state — annotate so the recommendation is not
+              // misread as "your blinds are currently at this position".
+              phrase += " (current unknown)";
             }
             parts.push({ text: phrase, muted: false });
           } else if (groupId) {
