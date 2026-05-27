@@ -11,6 +11,7 @@ from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 
 from app.api import (
+    routes_blinds,
     routes_config,
     routes_ha,
     routes_history,
@@ -88,6 +89,7 @@ def create_app() -> FastAPI:
     app.include_router(routes_weather.router)
     app.include_router(routes_ha.router)
     app.include_router(routes_push.router)
+    app.include_router(routes_blinds.router)
 
     @app.get("/healthz")
     def healthz():

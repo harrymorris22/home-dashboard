@@ -41,11 +41,16 @@ def _zone_reading(zone: str, temp: float = 22.5, hum: float = 55.0) -> ZoneSenso
     )
 
 
-def _make_bundle(cfg, *, zones=None, sw_lux=None, blinds=None):
+def _make_bundle(cfg, *, zones=None, sw_lux=None, blinds=None, ha_known_blinds=None):
     """Assemble a minimal StateBundle for the function under test.
 
     The function only touches `bundle.snap.zones`, `bundle.snap.sw_lux`,
-    and `bundle.snap.current_blind`, so we stub everything else.
+    `bundle.snap.current_blind`, and `bundle.ha_known_blinds`, so we stub
+    everything else.
+
+    Default ``ha_known_blinds`` is the full set of groups in ``blinds`` — i.e.
+    HA reported every group. Pass an empty frozenset to simulate
+    "HA returned nothing, values came from manual fallback".
     """
     if zones is None:
         zones = {
@@ -56,6 +61,8 @@ def _make_bundle(cfg, *, zones=None, sw_lux=None, blinds=None):
         }
     if blinds is None:
         blinds = {"mezz": 50, "downstairs": 25, "bedroom": 100}
+    if ha_known_blinds is None:
+        ha_known_blinds = frozenset(blinds.keys())
 
     snap = Snapshot(
         now=datetime(2026, 5, 6, 12, 0, tzinfo=timezone.utc),
@@ -75,7 +82,13 @@ def _make_bundle(cfg, *, zones=None, sw_lux=None, blinds=None):
         prompts=[],
         rule_errors=[],
     )
-    return StateBundle(cfg=cfg, snap=snap, rec=rec, next_actions=[])
+    return StateBundle(
+        cfg=cfg,
+        snap=snap,
+        rec=rec,
+        next_actions=[],
+        ha_known_blinds=ha_known_blinds,
+    )
 
 
 def _dummy_sun():
@@ -178,3 +191,47 @@ def test_source_field_stamped_on_every_row(cfg):
     assert all(r.source == "ha" for r in rows.readings)
     assert rows.sunshine is not None and rows.sunshine.source == "ha"
     assert all(a.source == "ha" for a in rows.actuators)
+
+
+def test_actuator_rows_only_persist_ha_known_groups(cfg):
+    """REGRESSION (v0.9.0): when current_blind values came from the
+    DbCachedActuatorStateSource fallback (e.g., user POSTed via
+    /api/blinds/state because Tahoma never reports), the slow-tick
+    snapshot must NOT re-stamp them with source="ha". Doing so would
+    pollute the audit trail — a manual entry would appear in history as
+    if HA reported it.
+
+    The fix: snapshot_to_rows checks bundle.ha_known_blinds and only
+    emits rows for groups that actually came from HA.
+    """
+    now = datetime.now(tz=timezone.utc)
+    # mezz came from HA, downstairs + bedroom from manual fallback.
+    bundle = _make_bundle(
+        cfg,
+        blinds={"mezz": 50, "downstairs": 100, "bedroom": 0},
+        ha_known_blinds=frozenset({"mezz"}),
+    )
+    rows = snapshot_to_rows(bundle, now)
+
+    actuators_by_key = {a.actuator: a for a in rows.actuators}
+    assert "blind:mezz" in actuators_by_key
+    assert "blind:downstairs" not in actuators_by_key, (
+        "downstairs came from manual fallback; the slow tick must not "
+        "re-stamp it with source='ha'."
+    )
+    assert "blind:bedroom" not in actuators_by_key
+
+
+def test_actuator_rows_empty_when_ha_returns_nothing(cfg):
+    """When HA cover source is dead entirely (every group came from
+    manual fallback), snapshot writes ZERO actuator rows — the DB
+    already has the canonical source='manual' rows from /api/blinds/state.
+    """
+    now = datetime.now(tz=timezone.utc)
+    bundle = _make_bundle(
+        cfg,
+        blinds={"mezz": 0, "downstairs": 100, "bedroom": 50},
+        ha_known_blinds=frozenset(),
+    )
+    rows = snapshot_to_rows(bundle, now)
+    assert rows.actuators == []

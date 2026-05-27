@@ -72,7 +72,16 @@ def _bundle(cfg) -> StateBundle:
         prompts=[],
         rule_errors=[],
     )
-    return StateBundle(cfg=cfg, snap=snap, rec=rec, next_actions=[])
+    return StateBundle(
+        cfg=cfg,
+        snap=snap,
+        rec=rec,
+        next_actions=[],
+        # HA reported all three groups (the persistence test asserts they all
+        # get rows). Tests for the "manual fallback, no HA" case live in
+        # test_snapshot_to_rows.py.
+        ha_known_blinds=frozenset({"mezz", "downstairs", "bedroom"}),
+    )
 
 
 @dataclass

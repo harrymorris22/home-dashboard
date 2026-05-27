@@ -53,6 +53,12 @@ class StateBundle:
     snap: Snapshot
     rec: DashboardRecommendation
     next_actions: list[dict[str, Any]]
+    # Provenance: which blind groups had a real HA reading on this build.
+    # Empty when HA isn't configured or returned unknown for every cover.
+    # Used by snapshot_to_rows to avoid stamping user-asserted positions
+    # with source="ha" — the slow-tick re-write would otherwise pollute
+    # the audit trail.
+    ha_known_blinds: frozenset[str] = frozenset()
 
 
 @dataclass(frozen=True)
@@ -91,10 +97,16 @@ async def build_full_state(session: Session, ha_client) -> StateBundle:
 
     # Actuator state: HA cover source preferred (blind position from Tahoma),
     # DB-cached fills the rest (windows aren't on HA today; blinds fall back
-    # to the last persisted row when HA is offline).
+    # to the last persisted row when HA is offline or when the cover is in
+    # "unknown" state — e.g. Tahoma open/close-only blinds that never report
+    # back).
     fallback_actuator = DbCachedActuatorStateSource(session)
+    ha_known_blinds: frozenset[str] = frozenset()
     if ha_client is not None and settings.ha_blind_entities:
         ha_cover = HomeAssistantCoverSource(ha_client, settings.ha_blind_entities)
+        # Probe HA directly so we can record provenance for the snapshot
+        # persistence step downstream. Cheap — pure in-memory cache read.
+        ha_known_blinds = frozenset(ha_cover.latest().blind_pct.keys())
         actuator_source = CompositeActuatorStateSource(ha_cover, fallback_actuator)
     else:
         actuator_source = fallback_actuator
@@ -110,7 +122,13 @@ async def build_full_state(session: Session, ha_client) -> StateBundle:
     snap = await builder.build()
     rec = decide(snap)
     next_actions = project_actions(snap)
-    return StateBundle(cfg=cfg, snap=snap, rec=rec, next_actions=next_actions)
+    return StateBundle(
+        cfg=cfg,
+        snap=snap,
+        rec=rec,
+        next_actions=next_actions,
+        ha_known_blinds=ha_known_blinds,
+    )
 
 
 def snapshot_to_rows(bundle: StateBundle, now: datetime) -> SnapshotRows:
@@ -144,6 +162,10 @@ def snapshot_to_rows(bundle: StateBundle, now: datetime) -> SnapshotRows:
         if bundle.snap.sw_lux is not None
         else None
     )
+    # Only persist actuator rows for groups whose value actually came from HA.
+    # Otherwise we'd be re-stamping a user-asserted position (POST /api/blinds/state
+    # → source="manual") with source="ha", which silently lies in the audit trail
+    # and makes "where did this number come from?" unanswerable later.
     actuators = [
         ActuatorState(
             ts=now,
@@ -152,6 +174,7 @@ def snapshot_to_rows(bundle: StateBundle, now: datetime) -> SnapshotRows:
             source=SNAPSHOT_SOURCE,
         )
         for group, pct in bundle.snap.current_blind.items()
+        if group in bundle.ha_known_blinds
     ]
     return SnapshotRows(readings=readings, sunshine=sunshine, actuators=actuators)
 
