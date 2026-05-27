@@ -17,6 +17,7 @@ def decide(snap: Snapshot, rules: list[Rule] | None = None) -> DashboardRecommen
         sun=snap.sun,
         cfg=snap.config,
         sw_lux=snap.sw_lux,
+        current_blind=snap.current_blind,
     )
     outputs, errors = run_rules(facts, rules)
     return combine(facts, outputs, errors)

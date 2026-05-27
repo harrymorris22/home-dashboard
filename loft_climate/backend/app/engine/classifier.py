@@ -132,6 +132,7 @@ def build_facts(
     sun: SunPosition,
     cfg: ConfigV1,
     sw_lux: float | None = None,
+    current_blind: dict[str, int] | None = None,
 ) -> Facts:
     zone_thermal: dict[str, ThermalLabel] = {}
     zone_apparent: dict[str, float] = {}
@@ -164,7 +165,15 @@ def build_facts(
             if v is not None:
                 confirm_lux = v if confirm_lux is None else max(confirm_lux, v)
 
-    sun_on_sw = is_sun_on_sw(sun, cfg, confirm_lux)
+    # The Aqara T1 lux sensor sits inside the SW window in the office (mezz
+    # zone). When mezz blinds are physically down (>= 75%), the sensor's view
+    # to the outside is blocked — its reading can't tell us whether sun is
+    # actually on the glazing. Tell is_sun_on_sw to skip lux confirmation in
+    # that case so we don't loop "blinds down → low lux → blinds up → sun
+    # pours in → blinds down".
+    cb = current_blind or {}
+    sw_blinds_blocking = cb.get("mezz", 0) >= 75
+    sun_on_sw = is_sun_on_sw(sun, cfg, confirm_lux, sw_blinds_blocking=sw_blinds_blocking)
 
     return Facts(
         now=now,
