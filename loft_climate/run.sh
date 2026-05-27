@@ -19,6 +19,8 @@ with open(sys.argv[1]) as f:
 
 # Map Add-on option names → backend env vars.
 mapping = {
+    "weather_provider":          "WEATHER_PROVIDER",
+    "weather_user_agent":        "WEATHER_USER_AGENT",
     "owm_api_key":               "OWM_API_KEY",
     "ha_token":                  "HA_TOKEN",
     "ha_entity_map":             "HA_ENTITY_MAP",

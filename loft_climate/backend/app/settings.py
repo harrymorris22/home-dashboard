@@ -17,6 +17,12 @@ class Settings(BaseSettings):
         extra="ignore",
     )
 
+    # Weather provider: "met_no" (default, free, no key) or "owm" (legacy,
+    # paid One Call 3.0). Switch in the Add-on options if needed.
+    weather_provider: str = "met_no"
+    # Met.no requires a User-Agent with a contact email. Format example:
+    #   "loft-climate/0.8.0 ops@example.com"
+    weather_user_agent: str = "loft-climate (contact-email-here@example.com)"
     owm_api_key: str = Field(default="")
     latitude: float = 51.5074
     longitude: float = -0.1278

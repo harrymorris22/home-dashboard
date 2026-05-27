@@ -11,7 +11,7 @@ from app.config.schema import ConfigV1
 from app.db import repo
 from app.db.models import WeatherCache
 from app.settings import get_settings
-from app.weather import client as owm_client
+from app.weather import provider as weather_provider
 from app.weather.schema import HourlyForecast, WeatherSnapshot
 
 log = logging.getLogger(__name__)
@@ -94,11 +94,7 @@ async def get_or_fetch(session: Session, cfg: ConfigV1, *, force: bool = False) 
             return _deserialise(row.payload_json, stale=False)
 
     try:
-        snap = await owm_client.fetch(
-            api_key=settings.owm_api_key,
-            lat=cfg.location.latitude,
-            lon=cfg.location.longitude,
-        )
+        snap = await weather_provider.fetch(settings, cfg)
     except Exception as e:
         log.warning("OWM fetch failed: %s", e)
         if row is None:

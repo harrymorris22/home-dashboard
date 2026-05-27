@@ -98,7 +98,7 @@ async def test_owm_failure_within_stale_threshold_returns_stale_true():
     _seed_cache(now - timedelta(minutes=20))
 
     with patch(
-        "app.weather.cache.owm_client.fetch",
+        "app.weather.cache.weather_provider.fetch",
         side_effect=RuntimeError("simulated OWM 401"),
     ):
         result = await _call_get_or_fetch()
@@ -118,7 +118,7 @@ async def test_owm_failure_past_stale_threshold_returns_none():
     _seed_cache(now - timedelta(days=14), precip_now=True)
 
     with patch(
-        "app.weather.cache.owm_client.fetch",
+        "app.weather.cache.weather_provider.fetch",
         side_effect=RuntimeError("simulated OWM auth failure"),
     ):
         result = await _call_get_or_fetch()
@@ -133,7 +133,7 @@ async def test_owm_failure_past_stale_threshold_returns_none():
 async def test_cold_start_no_cache_owm_failure_returns_none():
     """No cached row, OWM fails → None (unchanged from prior behaviour)."""
     with patch(
-        "app.weather.cache.owm_client.fetch",
+        "app.weather.cache.weather_provider.fetch",
         side_effect=RuntimeError("simulated OWM failure"),
     ):
         result = await _call_get_or_fetch()
@@ -148,7 +148,7 @@ async def test_successful_refetch_writes_new_row():
 
     fresh_snap = _snap(now)
     with patch(
-        "app.weather.cache.owm_client.fetch",
+        "app.weather.cache.weather_provider.fetch",
         new=AsyncMock(return_value=fresh_snap),
     ):
         result = await _call_get_or_fetch()
