@@ -1,6 +1,7 @@
 import { useDashboardState } from "../api/hooks";
 import { ActionPanel } from "../components/ActionPanel";
 import { BlindStateControl } from "../components/BlindStateControl";
+import { WindowStateControl } from "../components/WindowStateControl";
 import { NextActionsPanel } from "../components/NextActionsPanel";
 import { WeatherStrip } from "../components/WeatherStrip";
 import { ZoneGrid } from "../components/ZoneGrid";
@@ -24,6 +25,7 @@ export function Dashboard() {
     <div className="space-y-4">
       <ActionPanel rec={data.recommendations} currentState={data.current_state} />
       <BlindStateControl />
+      <WindowStateControl />
       <NextActionsPanel actions={data.next_actions} />
       <WeatherStrip weather={data.weather} sun={data.sun} sunshine={data.sunshine} />
       <ZoneGrid sensors={data.sensors} recommendations={data.recommendations} />

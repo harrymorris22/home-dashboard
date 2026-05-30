@@ -18,6 +18,7 @@ from app.api import (
     routes_push,
     routes_state,
     routes_weather,
+    routes_windows,
 )
 from app.db.session import init_db
 from app.push.scheduler import PushScheduler
@@ -90,6 +91,7 @@ def create_app() -> FastAPI:
     app.include_router(routes_ha.router)
     app.include_router(routes_push.router)
     app.include_router(routes_blinds.router)
+    app.include_router(routes_windows.router)
 
     @app.get("/healthz")
     def healthz():
