@@ -35,8 +35,12 @@ def test_is_sun_on_sw_below_horizon_false(cfg: ConfigV1):
 
 
 def test_is_sun_on_sw_off_azimuth(cfg: ConfigV1):
-    # Early morning: sun is in the east (~90°), not SW.
-    when = datetime(2026, 7, 15, 6, 0, tzinfo=timezone.utc)
+    # Late evening (9 PM BST = 8 PM UTC, mid July): sun in the NW (~290°),
+    # past the SE-facing glazing's 230° max azimuth. v0.11 widened the
+    # acceptance window so morning sun in the E (~80°) now counts as
+    # on-glazing, which means "off-azimuth" tests need a different time
+    # of day.
+    when = datetime(2026, 7, 15, 20, 0, tzinfo=timezone.utc)
     pos = compute(when, cfg)
     assert is_sun_on_sw(pos, cfg) is False
 
@@ -79,13 +83,14 @@ def test_is_sun_on_sw_blinds_blocking_loose_azimuth_in_daylight(cfg: ConfigV1):
 
 
 def test_is_sun_on_sw_blinds_blocking_far_off_azimuth(cfg: ConfigV1):
-    """Blinds blocking + sun far from SW (e.g. NE morning) → still False.
+    """Blinds blocking + sun far from glazing (e.g. NW evening) → still False.
 
     The fix shouldn't make the engine paranoid. When the sun is genuinely
-    not on the SW face (well outside the loose envelope), blinds-blocking
-    doesn't change the answer.
+    not on the glazing (well outside the loose envelope), blinds-blocking
+    doesn't change the answer. v0.11 widened the morning window so the
+    test fixture moves to evening NW to stay truly off-azimuth.
     """
-    when = datetime(2026, 7, 15, 6, 0, tzinfo=timezone.utc)
+    when = datetime(2026, 7, 15, 20, 0, tzinfo=timezone.utc)
     pos = compute(when, cfg)
     assert is_sun_on_sw(pos, cfg, lux_indoor=0, sw_blinds_blocking=True) is False
 

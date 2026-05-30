@@ -4,7 +4,7 @@
     "latitude": 51.5321,
     "longitude": -0.0925,
     "timezone": "Europe/London",
-    "facing_azimuth_deg": 225
+    "facing_azimuth_deg": 150
   },
   "zones": {
     "mezzanine":    {"comfort_min": 19.0, "comfort_max": 24.0, "blind_group": "mezz"},
@@ -18,9 +18,9 @@
   "sky":      {"sunny_max_cloud_pct": 30, "cloudy_min_cloud_pct": 70},
   "wind":     {"still_max_mps": 1.5, "breeze_min_mps": 2.5},
   "sun_on_sw": {
-    "azimuth_min_deg": 135,
-    "azimuth_max_deg": 270,
-    "elevation_min_deg": 10,
+    "azimuth_min_deg": 70,
+    "azimuth_max_deg": 230,
+    "elevation_min_deg": 5,
     "lux_indoor_direct_threshold": 8000,
     "lux_indoor_diffuse_threshold": 2000
   },

@@ -157,13 +157,15 @@ def cold_sunny(cfg: ConfigV1) -> Snapshot:
 
 
 def cold_cloudy(cfg: ConfigV1) -> Snapshot:
-    # January cloud cover - sun below the elevation_min threshold for "on SW".
+    # January cloud cover. Sun elevation below the elevation_min threshold
+    # for "on glazing" — winter sun barely peeking, low enough that even
+    # the v0.11 lowered threshold (5°) excludes it.
     now = _ts(2026, 1, 15, 11)
     return Snapshot(
         now=now,
         zones=_zones_uniform(temp=18.0, humid=55),
         weather=_weather(temp=4.0, feels=2.0, cloud=90, wind=3.0, uvi=0.5, conditions="Clouds"),
-        sun=_sun(elev=8, az=200, sunrise_hour=8, sunset_hour=16, on=now),
+        sun=_sun(elev=3, az=200, sunrise_hour=8, sunset_hour=16, on=now),
         config=cfg,
         sw_lux=200,
     )
