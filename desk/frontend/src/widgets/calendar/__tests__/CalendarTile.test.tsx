@@ -36,6 +36,18 @@ describe("CalendarTile", () => {
     expect(screen.getByTestId("calendar-error")).toBeInTheDocument();
   });
 
+  test("ical_returned_html error shows specific instruction (v0.3.0)", () => {
+    setup({
+      error: new ApiError(502, {
+        error: "ical_returned_html",
+        instruction:
+          "URL likely wrong type. Use the Secret address in iCal format.",
+      }),
+    });
+    expect(screen.getByTestId("calendar-html-response")).toBeInTheDocument();
+    expect(screen.getByText(/Secret address/)).toBeInTheDocument();
+  });
+
   test("renders next event", () => {
     const inFuture = new Date(Date.now() + 30 * 60_000).toISOString();
     setup({

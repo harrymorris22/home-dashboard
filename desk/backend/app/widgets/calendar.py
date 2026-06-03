@@ -35,6 +35,14 @@ router = APIRouter()
 
 _CACHE_TTL = timedelta(minutes=5)
 
+# Browser-like UA so providers (Google in particular) don't refuse the
+# scraper-default `python-httpx/*` and serve a login page instead of the
+# ICS feed. The `+url` portion is the RFC-2616 contact convention.
+USER_AGENT = (
+    "Mozilla/5.0 (compatible; LoftDeskDashboard/0.3; "
+    "+https://desk.harrymorris.me)"
+)
+
 _cache: dict[str, Any] = {"fetched_at": None, "payload": None}
 _lock = asyncio.Lock()
 
@@ -126,10 +134,15 @@ async def next_event() -> dict[str, Any]:
             return _cache["payload"]
 
         try:
-            async with httpx.AsyncClient(timeout=10.0, follow_redirects=True) as client:
+            async with httpx.AsyncClient(
+                timeout=10.0,
+                follow_redirects=True,
+                headers={"User-Agent": USER_AGENT},
+            ) as client:
                 resp = await client.get(settings.ical_url)
             resp.raise_for_status()
             ics_bytes = resp.content
+            content_type = resp.headers.get("content-type", "").lower()
         except httpx.HTTPError as e:
             log.warning("[calendar widget] fetch failure (%s): %s", type(e).__name__, e)
             raise HTTPException(
@@ -139,6 +152,36 @@ async def next_event() -> dict[str, Any]:
                     "message": f"Could not fetch iCal feed: {type(e).__name__}",
                 },
             ) from None
+
+        # Sniff: Google (and similar) often serve their web UI HTML when the
+        # user pasted the wrong calendar URL flavor, OR when a UA filter
+        # routes the request to a login wall. Either way, icalendar will
+        # throw a generic parse error and the user gets no signal about
+        # what to fix. Surface a specific error code so the tile can tell
+        # them to use the "Secret address in iCal format" URL.
+        looks_like_html = (
+            "text/html" in content_type
+            or ics_bytes.lstrip()[:1] == b"<"
+        )
+        if looks_like_html:
+            log.warning(
+                "[calendar widget] response looks like HTML, not iCal "
+                "(content-type=%r, first 80 bytes=%r)",
+                content_type,
+                ics_bytes[:80],
+            )
+            raise HTTPException(
+                status_code=502,
+                detail={
+                    "error": "ical_returned_html",
+                    "instruction": (
+                        "URL likely wrong type. In Google Calendar: Settings "
+                        "→ click your calendar in the left sidebar → "
+                        "'Integrate calendar' → copy the 'Secret address in "
+                        "iCal format' (URL must end in basic.ics)."
+                    ),
+                },
+            )
 
         try:
             payload = _parse_ics(ics_bytes, now, local_tz)

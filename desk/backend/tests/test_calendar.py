@@ -135,3 +135,87 @@ def test_cache_hit_avoids_second_fetch():
             client.get("/api/widgets/calendar/next")
             client.get("/api/widgets/calendar/next")
     assert instance.get.await_count == 1
+
+
+# --- v0.3.0: UA header + HTML sniff ---------------------------------------
+
+
+def test_user_agent_header_sent_on_fetch():
+    """v0.3.0: backend sends a browser-like UA, not the default Python one,
+    so Google + similar providers don't refuse the request."""
+    get_settings().ical_url = "https://example.com/cal.ics"
+    london = ZoneInfo("Europe/London")
+    upcoming = datetime.now(tz=london) + timedelta(hours=1)
+    ics = _ics(_single_event(upcoming.replace(tzinfo=None), "Meeting"))
+
+    captured_headers: dict[str, str] = {}
+
+    with patch.object(calendar_mod.httpx, "AsyncClient") as ClientCls:
+        instance = AsyncMock()
+        instance.headers = httpx.Headers({})
+
+        # Capture the headers httpx.AsyncClient was constructed with.
+        def _ctor(**kwargs):
+            captured_headers.update(kwargs.get("headers") or {})
+            ClientCls.return_value.__aenter__.return_value = instance
+            return ClientCls.return_value
+
+        ClientCls.side_effect = _ctor
+        instance.get = AsyncMock(
+            return_value=httpx.Response(
+                200, content=ics, request=httpx.Request("GET", "http://x")
+            )
+        )
+        with TestClient(create_app()) as client:
+            client.get("/api/widgets/calendar/next")
+
+    ua = captured_headers.get("User-Agent") or captured_headers.get("user-agent")
+    assert ua is not None, "no User-Agent passed to httpx.AsyncClient"
+    assert "Mozilla" in ua, f"UA does not look browser-like: {ua!r}"
+    assert "LoftDeskDashboard" in ua
+
+
+def test_html_response_returns_502_ical_returned_html():
+    """v0.3.0 regression: when Google serves its web UI (HTML/CSS) instead
+    of an ICS feed, return a specific error code so the frontend tile can
+    surface an actionable instruction instead of generic 'unreachable'."""
+    get_settings().ical_url = "https://calendar.google.com/wrong-url-type"
+    with patch.object(calendar_mod.httpx, "AsyncClient") as ClientCls:
+        instance = AsyncMock()
+        instance.get = AsyncMock(
+            return_value=httpx.Response(
+                200,
+                content=b"<!DOCTYPE html><html><head><title>Sign in</title></head></html>",
+                headers={"content-type": "text/html; charset=utf-8"},
+                request=httpx.Request("GET", "http://x"),
+            )
+        )
+        ClientCls.return_value.__aenter__.return_value = instance
+        with TestClient(create_app()) as client:
+            resp = client.get("/api/widgets/calendar/next")
+    assert resp.status_code == 502
+    body = resp.json()
+    assert body["detail"]["error"] == "ical_returned_html"
+    assert "Secret address" in body["detail"]["instruction"]
+
+
+def test_html_sniffed_by_leading_lt_even_without_content_type():
+    """Edge case: some servers omit Content-Type but still return HTML.
+    The first non-whitespace byte being '<' is enough to trigger the
+    sniff and surface the right error."""
+    get_settings().ical_url = "https://example.com/sketchy"
+    with patch.object(calendar_mod.httpx, "AsyncClient") as ClientCls:
+        instance = AsyncMock()
+        instance.get = AsyncMock(
+            return_value=httpx.Response(
+                200,
+                content=b"   \n<html>this came back without a content-type</html>",
+                # No content-type header.
+                request=httpx.Request("GET", "http://x"),
+            )
+        )
+        ClientCls.return_value.__aenter__.return_value = instance
+        with TestClient(create_app()) as client:
+            resp = client.get("/api/widgets/calendar/next")
+    assert resp.status_code == 502
+    assert resp.json()["detail"]["error"] == "ical_returned_html"

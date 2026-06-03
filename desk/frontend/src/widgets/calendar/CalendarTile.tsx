@@ -27,21 +27,27 @@ export function CalendarTile() {
   if (error) {
     const apiErr = error as ApiError;
     const detail = (apiErr.detail as { error?: string; instruction?: string }) || {};
-    if (apiErr.status === 503 && detail.error === "ical_url_not_configured") {
-      return (
-        <Card>
-          <h2 className="hud-label">Calendar</h2>
-          <p className="text-secondary text-sm mt-3" data-testid="calendar-unconfigured">
-            {detail.instruction || "Set ical_url in Add-on options"}
-          </p>
-        </Card>
-      );
+    const errorCode = detail.error;
+
+    // Error code → user-facing message + test-id. Each known sub-error
+    // gets actionable copy; unknown errors fall through to the generic
+    // "unreachable" so we never crash on a new backend error code.
+    let message = "Calendar source unreachable";
+    let testId = "calendar-error";
+    if (apiErr.status === 503 && errorCode === "ical_url_not_configured") {
+      message = detail.instruction || "Set ical_url in Add-on options";
+      testId = "calendar-unconfigured";
+    } else if (errorCode === "ical_returned_html") {
+      message =
+        detail.instruction ||
+        "Wrong URL type. Use the iCal Secret address ending in basic.ics.";
+      testId = "calendar-html-response";
     }
     return (
       <Card>
         <h2 className="hud-label">Calendar</h2>
-        <p className="text-secondary text-sm mt-3" data-testid="calendar-error">
-          Calendar source unreachable
+        <p className="text-secondary text-sm mt-3" data-testid={testId}>
+          {message}
         </p>
       </Card>
     );
