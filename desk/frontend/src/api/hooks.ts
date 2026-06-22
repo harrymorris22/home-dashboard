@@ -4,10 +4,21 @@ import useSWR from "swr";
 import { fetcher } from "./client";
 import type { Urgency } from "../_shared/urgency";
 
+export type WindowAction = { zone: string; action: "open" | "close" };
+export type BlindAction = {
+  group: string;
+  current_pct: number;
+  target_pct: number;
+  direction: "raise" | "lower";
+};
+
 export type ClimateData = {
   scenario: string;
   urgency: Urgency;
-  bedroom_temp_c: number | null;
+  office_temp_c: number | null;
+  // Optional so an older v0.3 backend (no action fields) still renders cleanly.
+  window_actions?: WindowAction[];
+  blind_actions?: BlindAction[];
   prompt: string | null;
   ts: string;
   stale: boolean;

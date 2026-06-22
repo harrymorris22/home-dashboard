@@ -5,6 +5,19 @@ import { useClimate } from "../../api/hooks";
 import { LastUpdated } from "../../components/LastUpdated";
 import { StaleBadge } from "../../components/StaleBadge";
 
+// Both windows (zone-keyed) and blinds (group-keyed) render with the same
+// user-facing names. Upstream uses divergent keys: zones={mezzanine, downstairs,
+// bedroom, ceiling_apex}, blind groups={mezz, downstairs, bedroom}. Map both
+// dialects to one user vocabulary.
+const ZONE_LABEL: Record<string, string> = {
+  mezzanine: "office",
+  mezz: "office",
+  downstairs: "downstairs",
+  bedroom: "bedroom",
+  ceiling_apex: "apex",
+};
+const label = (key: string) => ZONE_LABEL[key] ?? key;
+
 /** Climate tile. Tap opens the full loft.harrymorris.me PWA in a new tab
  * — no UI duplication. Detail route exists as a safety net for deep links. */
 export function ClimateTile() {
@@ -34,6 +47,21 @@ export function ClimateTile() {
     );
   }
 
+  const windowLine = data.window_actions?.length
+    ? data.window_actions
+        .map((a) => `${a.action === "open" ? "Open" : "Close"} ${label(a.zone)}`)
+        .join(" · ")
+    : null;
+
+  const blindLine = data.blind_actions?.length
+    ? data.blind_actions
+        .map(
+          (a) =>
+            `${a.direction === "raise" ? "Raise" : "Lower"} ${label(a.group)} blinds to ${a.target_pct}%`,
+        )
+        .join(" · ")
+    : null;
+
   return (
     <Card
       onClick={onClick}
@@ -54,8 +82,24 @@ export function ClimateTile() {
         {data.scenario.replaceAll("_", " ")}
       </div>
       <p className="text-sm text-secondary">
-        Bedroom <span className="text-primary font-bold">{formatTemp(data.bedroom_temp_c)}</span>
+        Office <span className="text-primary font-bold">{formatTemp(data.office_temp_c)}</span>
       </p>
+      {windowLine && (
+        <p
+          className="text-sm text-primary line-clamp-2"
+          data-testid="climate-window-actions"
+        >
+          {windowLine}
+        </p>
+      )}
+      {blindLine && (
+        <p
+          className="text-sm text-primary line-clamp-2"
+          data-testid="climate-blind-actions"
+        >
+          {blindLine}
+        </p>
+      )}
       {data.prompt && <p className="text-xs text-secondary line-clamp-2">{data.prompt}</p>}
     </Card>
   );
