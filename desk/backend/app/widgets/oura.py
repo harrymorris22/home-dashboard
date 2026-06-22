@@ -539,6 +539,44 @@ async def oauth_disconnect() -> dict[str, bool]:
     return {"disconnected": True}
 
 
+# TEMPORARY DIAGNOSTIC — remove after debugging the "today is null" issue.
+# Returns the last 8 days' (day, steps, timezone) from Oura's daily_activity
+# so we can see what date keys Oura actually returns vs what we query for.
+@router.get("/api/widgets/oura/_debug")
+async def oura_debug() -> dict[str, Any]:
+    token = await _get_valid_access_token()
+    now = datetime.now(tz=timezone.utc)
+    today_iso, yesterday_iso = _london_today_yesterday(now)
+    london_today = datetime.now(tz=LONDON).date()
+    window_start = (london_today - timedelta(days=7)).isoformat()
+    window_end = (london_today + timedelta(days=1)).isoformat()
+    url = f"{_OURA_DAILY_URL}?start_date={window_start}&end_date={window_end}"
+    async with httpx.AsyncClient(timeout=5.0) as client:
+        resp = await client.get(url, headers={"Authorization": f"Bearer {token}"})
+    try:
+        body = resp.json() if resp.status_code == 200 else {}
+    except (ValueError, json.JSONDecodeError):
+        body = {}
+    days = [
+        {
+            "day": r.get("day"),
+            "steps": r.get("steps"),
+            "timezone": r.get("timezone"),
+        }
+        for r in (body.get("data") or [])
+        if isinstance(r, dict)
+    ]
+    return {
+        "status": resp.status_code,
+        "today_requested": today_iso,
+        "yesterday_requested": yesterday_iso,
+        "window_requested": [window_start, window_end],
+        "now_utc": now.isoformat(),
+        "now_london": datetime.now(tz=LONDON).isoformat(),
+        "days_returned": days,
+    }
+
+
 # ── Proactive refresh task ─────────────────────────────────────────────────
 
 
