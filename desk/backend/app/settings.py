@@ -32,10 +32,6 @@ class Settings(BaseSettings):
     # Stored as a "password" type in config.yaml so HA UI masks it.
     ical_url: str = ""
 
-    # Oura widget — Personal Access Token from cloud.ouraring.com.
-    # Stored as a "password" type in config.yaml so HA UI masks it.
-    oura_pat_token: str = ""
-
     # System widget — internet uptime probe targets. Gateway gets appended
     # at runtime if discoverable.
     ping_targets: list[str] = Field(default_factory=lambda: ["1.1.1.1", "8.8.8.8"])
