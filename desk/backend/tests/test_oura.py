@@ -303,6 +303,45 @@ def test_summary_happy_path_uses_cached_access_token(_reset_state):
     instance.post.assert_not_called()
 
 
+def test_summary_requests_end_date_as_tomorrow_london(_reset_state):
+    """Regression: Oura's daily_activity end_date excludes today's in-progress
+    row. We must request through tomorrow (today + 1 day in Europe/London)
+    so today's row is included in the response."""
+    _write_test_tokens(_reset_state, expires_in_minutes=60)
+    today_iso, yesterday_iso = _london_today_yesterday(datetime.now(tz=timezone.utc))
+    london_today = datetime.now(tz=oura_mod.LONDON).date()
+    expected_end = (london_today + timedelta(days=1)).isoformat()
+    payload = _make_oura_payload([
+        {"day": today_iso, "steps": 8432},
+        {"day": yesterday_iso, "steps": 11204},
+    ])
+    captured_urls = []
+
+    async def fake_get(url, headers=None, **kwargs):
+        captured_urls.append(url)
+        return _mock_response(200, payload)
+
+    with patch.object(oura_mod.httpx, "AsyncClient") as ClientCls:
+        instance = AsyncMock()
+        instance.get = AsyncMock(side_effect=fake_get)
+        ClientCls.return_value.__aenter__.return_value = instance
+        with TestClient(create_app()) as client:
+            resp = client.get("/api/widgets/oura/summary")
+
+    assert resp.status_code == 200
+    assert len(captured_urls) == 1
+    url = captured_urls[0]
+    assert f"start_date={yesterday_iso}" in url
+    assert f"end_date={expected_end}" in url, (
+        f"URL must request end_date={expected_end} (today+1 in London) to "
+        f"include today's row. Got: {url}"
+    )
+    # Today's row was filtered correctly even though we asked for a wider window
+    body = resp.json()
+    assert body["step_count"] == 8432
+    assert body["step_count_yesterday"] == 11204
+
+
 def test_summary_zero_steps_propagates(_reset_state):
     _write_test_tokens(_reset_state)
     today_iso, yesterday_iso = _london_today_yesterday(datetime.now(tz=timezone.utc))
