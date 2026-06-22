@@ -21,6 +21,7 @@ from app.monitor import MonitorTask
 from app.settings import BACKEND_DIR, get_settings
 from app.widgets import calendar as calendar_routes
 from app.widgets import climate as climate_routes
+from app.widgets import oura as oura_routes
 from app.widgets import stock as stock_routes
 from app.widgets import system as system_routes
 
@@ -66,6 +67,7 @@ def create_app() -> FastAPI:
     app.include_router(stock_routes.router)
     app.include_router(calendar_routes.router)
     app.include_router(system_routes.router)
+    app.include_router(oura_routes.router)
 
     @app.get("/healthz")
     def healthz():

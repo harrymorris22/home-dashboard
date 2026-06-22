@@ -1,5 +1,5 @@
 name: Desk Dashboard
-version: "0.4.0"
+version: "0.5.0"
 slug: desk_dashboard
 description: Multi-widget desk dashboard for iPad — climate, stocks, calendar, Pi health.
 arch:
@@ -22,8 +22,10 @@ map:
 options:
   loft_internal_url: "http://local_loft_climate:8000"
   ical_url: ""
+  oura_pat_token: ""
   log_level: info
 schema:
   loft_internal_url: str?
   ical_url: password?
+  oura_pat_token: password?
   log_level: list(trace|debug|info|notice|warning|error|fatal)?
