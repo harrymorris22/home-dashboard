@@ -32,6 +32,22 @@ class Settings(BaseSettings):
     # Stored as a "password" type in config.yaml so HA UI masks it.
     ical_url: str = ""
 
+    # Oura widget — OAuth2 credentials from cloud.ouraring.com/oauth/applications.
+    # client_id is technically not secret, but stored as password? for symmetry.
+    oura_client_id: str = ""
+    oura_client_secret: str = ""
+
+    # Public base URL the OAuth provider redirects back to via the user's
+    # browser. Cloudflare Tunnel fronts this; same value used by Oura's
+    # redirect_uri registration. Override at runtime if your dashboard lives
+    # at a different hostname.
+    dashboard_base_url: str = "https://desk.harrymorris.me"
+
+    # Path to the persistent Oura tokens file. In HA Supervisor, run.sh sets
+    # OURA_TOKENS_PATH=/data/oura_tokens.json so this resolves into the per-
+    # Add-on persistent volume. Local dev resolves to backend/data/.
+    oura_tokens_path: Path = DATA_DIR / "oura_tokens.json"
+
     # System widget — internet uptime probe targets. Gateway gets appended
     # at runtime if discoverable.
     ping_targets: list[str] = Field(default_factory=lambda: ["1.1.1.1", "8.8.8.8"])

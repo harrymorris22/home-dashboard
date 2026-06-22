@@ -15,9 +15,12 @@ with open(sys.argv[1]) as f:
     opts = json.load(f)
 
 mapping = {
-    "loft_internal_url": "LOFT_INTERNAL_URL",
-    "ical_url":          "ICAL_URL",
-    "log_level":         "LOG_LEVEL",
+    "loft_internal_url":   "LOFT_INTERNAL_URL",
+    "ical_url":            "ICAL_URL",
+    "oura_client_id":      "OURA_CLIENT_ID",
+    "oura_client_secret":  "OURA_CLIENT_SECRET",
+    "dashboard_base_url":  "DASHBOARD_BASE_URL",
+    "log_level":           "LOG_LEVEL",
 }
 
 for src, dst in mapping.items():
@@ -31,6 +34,9 @@ PY
   # shellcheck disable=SC1091
   . /tmp/desk.env
 fi
+
+# Tokens file lives in the HA persistent per-Add-on volume.
+export OURA_TOKENS_PATH="/data/oura_tokens.json"
 
 exec uvicorn app.main:app \
   --app-dir /app/backend \

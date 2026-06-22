@@ -48,6 +48,14 @@ export type CalendarData = {
   today: CalendarEvent[];
 };
 
+export type OuraData = {
+  step_count: number | null;
+  step_count_yesterday: number | null;
+  ts: string;
+  stale: boolean;
+  last_success_at: string | null;
+};
+
 export type SystemHealth = {
   cpu_pct: number;
   cpu_temp_c: number | null;
@@ -91,6 +99,13 @@ export function useCalendar() {
 export function useSystem() {
   return useSWR<SystemHealth>("/api/widgets/system/health", fetcher, {
     refreshInterval: 10_000,
+    ...FOCUS,
+  });
+}
+
+export function useOura() {
+  return useSWR<OuraData>("/api/widgets/oura/summary", fetcher, {
+    refreshInterval: 15 * 60_000,
     ...FOCUS,
   });
 }

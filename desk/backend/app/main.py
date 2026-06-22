@@ -21,6 +21,7 @@ from app.monitor import MonitorTask
 from app.settings import BACKEND_DIR, get_settings
 from app.widgets import calendar as calendar_routes
 from app.widgets import climate as climate_routes
+from app.widgets import oura as oura_routes
 from app.widgets import stock as stock_routes
 from app.widgets import system as system_routes
 
@@ -29,6 +30,8 @@ log = logging.getLogger(__name__)
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    import asyncio
+
     init_db()
     settings = get_settings()
 
@@ -39,11 +42,27 @@ async def lifespan(app: FastAPI):
     )
     await monitor.start()
     app.state.monitor = monitor
+
+    # Log the computed Oura redirect URI so a misconfigured
+    # dashboard_base_url is diagnosable in 5 seconds. No secrets in this line.
+    log.info(
+        "[desk] oura redirect_uri=%s/api/widgets/oura/oauth/callback",
+        settings.dashboard_base_url.rstrip("/"),
+    )
+
+    oura_task = asyncio.create_task(oura_routes.proactive_refresh_loop())
+    app.state.oura_refresh_task = oura_task
+
     log.info("[desk] startup complete")
 
     try:
         yield
     finally:
+        oura_task.cancel()
+        try:
+            await oura_task
+        except asyncio.CancelledError:
+            pass
         await monitor.stop()
 
 
@@ -66,6 +85,7 @@ def create_app() -> FastAPI:
     app.include_router(stock_routes.router)
     app.include_router(calendar_routes.router)
     app.include_router(system_routes.router)
+    app.include_router(oura_routes.router)
 
     @app.get("/healthz")
     def healthz():
