@@ -65,6 +65,17 @@ def project_actions(
     h_count = min(horizon_hours, len(base_snap.weather.hourly))
     for h in range(h_count):
         future_ts = base_snap.weather.hourly[h].ts
+        # Met.no's hourly forecast starts at the top of the current hour.
+        # If we're 40 minutes into the 11:00 hour, hourly[0].ts is 11:00
+        # UTC — already past. Skip past entries: they display as "11:00
+        # now" in the UI (formatDelta returns "now" for negative deltas)
+        # AND they leak stale forecast values into reasoning that
+        # contradict the live outdoor-sensor override applied to
+        # base_snap.weather.temp_c. Current-hour recommendations already
+        # live in base_rec, which uses the overridden weather — no need
+        # to project them again from a possibly-stale Met.no forecast.
+        if future_ts <= base_snap.now:
+            continue
         future_weather = _future_weather(base_snap.weather, h)
         future_sun = suncalc.compute(future_ts, base_snap.config)
         future_snap = replace(base_snap, now=future_ts, weather=future_weather, sun=future_sun)
