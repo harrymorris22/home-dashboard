@@ -89,6 +89,12 @@ class BlindGroupRecommendation:
     urgency: Urgency
     scenario: str
     reasons: list[str]
+    # v0.15: True when reasons came from the silence explainer (no rule fired
+    # for this actuator). Frontend uses it to (a) skip the per-zone ↳ line
+    # when silence text matches the top-level headline, and (b) filter
+    # silence-origin reasons out of pickWhy candidates so the headline
+    # doesn't degrade to a diagnostic.
+    silence: bool = False
 
 
 @dataclass(frozen=True)
@@ -98,6 +104,7 @@ class ZoneWindowRecommendation:
     urgency: Urgency
     scenario: str
     reasons: list[str]
+    silence: bool = False  # v0.15 — see BlindGroupRecommendation.silence
 
 
 @dataclass(frozen=True)

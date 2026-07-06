@@ -18,6 +18,14 @@ from app.engine.types import (
 )
 
 
+# v0.15: shared with app.engine.silence. Any tuning of these thresholds must
+# happen HERE — silence explainers import them so diagnostic strings stay
+# consistent with the rules they explain. Duplicating the number in a
+# silence helper let the two drift silently (CEO + Eng review flagged this).
+CROSS_VENT_MIN_DELTA_C = 1.5  # outdoor must be this many °C below indoor for cross-vent
+INDOOR_WARM_MIN_C = 22.5  # house avg above this triggers "warm indoor" branch
+
+
 @dataclass(frozen=True)
 class Rule:
     name: str
@@ -170,11 +178,11 @@ def _cross_ventilate_pred(f: Facts) -> bool:
     indoor_avg = f.house_avg_temp
     indoor_warm = (
         any(label == "hot" for label in f.zone_thermal.values())
-        or indoor_avg > 22.5
+        or indoor_avg > INDOOR_WARM_MIN_C
     )
     if not indoor_warm:
         return False
-    return f.weather.temp_c < indoor_avg - 1.5
+    return f.weather.temp_c < indoor_avg - CROSS_VENT_MIN_DELTA_C
 
 
 def _cross_ventilate(f: Facts) -> RuleOutput:

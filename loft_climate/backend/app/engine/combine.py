@@ -5,6 +5,7 @@ from collections import defaultdict
 from typing import Iterable
 
 from app.engine.rules import Rule
+from app.engine.silence import explain_silence_blind, explain_silence_window
 from app.engine.types import (
     BLIND_GROUPS,
     BlindGroupRecommendation,
@@ -77,7 +78,8 @@ def combine(facts: Facts, outputs: list[RuleOutput], errors: list[str]) -> Dashb
                 blind_pct=0,
                 urgency="green",
                 scenario="neutral",
-                reasons=[],
+                reasons=[explain_silence_blind(group, facts)],
+                silence=True,
             )
             continue
         # Resolve target value.
@@ -93,12 +95,18 @@ def combine(facts: Facts, outputs: list[RuleOutput], errors: list[str]) -> Dashb
             scenario = "neutral"
             urgency = "amber"
             reasons = [f"{w.rule}: {w.reasoning}" for w in winners]
+        # Rules ran but produced no reasoning strings — fall back to silence.
+        silence = False
+        if not reasons:
+            reasons = [explain_silence_blind(group, facts)]
+            silence = True
         by_blind[group] = BlindGroupRecommendation(
             group=group,
             blind_pct=value,
             urgency=urgency,
             scenario=scenario,
             reasons=reasons,
+            silence=silence,
         )
 
     by_zone: dict[str, ZoneWindowRecommendation] = {}
@@ -110,7 +118,8 @@ def combine(facts: Facts, outputs: list[RuleOutput], errors: list[str]) -> Dashb
                 window_open=None,
                 urgency="green",
                 scenario="neutral",
-                reasons=[],
+                reasons=[explain_silence_window(zone, facts)],
+                silence=True,
             )
             continue
         values = [w.window_targets[zone] for w in winners]
@@ -124,12 +133,17 @@ def combine(facts: Facts, outputs: list[RuleOutput], errors: list[str]) -> Dashb
             scenario = "neutral"
             urgency = "amber"
             reasons = [f"{w.rule}: {w.reasoning}" for w in winners]
+        silence = False
+        if not reasons:
+            reasons = [explain_silence_window(zone, facts)]
+            silence = True
         by_zone[zone] = ZoneWindowRecommendation(
             zone=zone,
             window_open=value,
             urgency=urgency,
             scenario=scenario,
             reasons=reasons,
+            silence=silence,
         )
 
     # Global summary: highest urgency across actuators; scenario = highest-priority winning rule.

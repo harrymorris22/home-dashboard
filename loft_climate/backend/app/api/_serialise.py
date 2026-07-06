@@ -26,6 +26,7 @@ def serialise_recommendation(rec: DashboardRecommendation) -> dict:
                 "urgency": b.urgency,
                 "scenario": b.scenario,
                 "reasons": b.reasons,
+                "silence": b.silence,
             }
             for g, b in rec.by_blind_group.items()
         },
@@ -36,6 +37,7 @@ def serialise_recommendation(rec: DashboardRecommendation) -> dict:
                 "urgency": w.urgency,
                 "scenario": w.scenario,
                 "reasons": w.reasons,
+                "silence": w.silence,
             }
             for z, w in rec.by_zone.items()
         },

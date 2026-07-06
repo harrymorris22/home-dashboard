@@ -44,6 +44,10 @@ export type BlindGroupRecommendation = {
   urgency: Urgency;
   scenario: string;
   reasons: string[];
+  // v0.15 — true when reasons came from the silence explainer, not a fired
+  // rule. Filter these out of pickWhy candidates and skip the per-zone ↳
+  // annotation when the reason duplicates the headline.
+  silence?: boolean;
 };
 
 export type ZoneWindowRecommendation = {
@@ -52,6 +56,7 @@ export type ZoneWindowRecommendation = {
   urgency: Urgency;
   scenario: string;
   reasons: string[];
+  silence?: boolean;  // v0.15 — see BlindGroupRecommendation.silence
 };
 
 export type Recommendations = {

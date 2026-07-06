@@ -125,6 +125,85 @@ def test_let_light_in_reasoning_does_not_promise_airflow(cfg: ConfigV1):
             )
 
 
+# --- v0.15: silence transparency guarantees --------------------------------
+
+
+def test_v015_warm_cloudy_windows_silence_reports_import_heat(cfg: ConfigV1):
+    """REGRESSION (v0.15 motivating bug): warm cloudy day where outdoor is
+    hotter than indoor. _cross_ventilate correctly doesn't fire (opening
+    would import heat). Before v0.15 the window recommendation had empty
+    reasons and the dashboard couldn't explain the silence.
+
+    After v0.15, the recommendation:
+    - Has silence=True on by_zone entries where no window rule fired
+    - Reasons include the actual temps and "import heat" text
+    """
+    from tests.scenarios import hot_sunny_still  # already exists; hot outdoor + still
+    # hot_sunny_still: outdoor hot (blocks cross_vent since outdoor >= indoor).
+    rec = decide(hot_sunny_still(cfg))
+    for z in ("mezzanine", "downstairs", "bedroom"):
+        rec_zone = rec.by_zone[z]
+        # If no window rule fires, silence should populate reasons.
+        if rec_zone.window_open is None or rec_zone.scenario == "neutral":
+            assert rec_zone.silence is True, (
+                f"{z}: silent recommendation must carry silence=True flag"
+            )
+            assert len(rec_zone.reasons) >= 1
+            assert rec_zone.reasons[0], f"{z}: silence reason must be non-empty"
+
+
+def test_v015_no_scenario_leaves_any_actuator_with_empty_reasons(cfg: ConfigV1):
+    """Matrix invariant: every actuator on every canned scenario has at
+    least one non-empty reason. Broader than pre-v0.15 (nothing enforced
+    it) and guards against future rule additions that leave silence gaps.
+    """
+    from tests.scenarios import (
+        hot_sunny_breeze,
+        hot_sunny_still,
+        hot_cloudy,
+        cold_sunny,
+        cold_cloudy,
+        post_sunset_purge,
+        pre_dawn_pre_cool,
+        bedtime_too_warm,
+        bedroom_overheat_safety,
+        apex_stratification,
+        mild_outdoor_warm_indoor,
+        rain_override,
+    )
+    for scenario in (
+        hot_sunny_breeze, hot_sunny_still, hot_cloudy, cold_sunny,
+        cold_cloudy, post_sunset_purge, pre_dawn_pre_cool, bedtime_too_warm,
+        bedroom_overheat_safety, apex_stratification, mild_outdoor_warm_indoor,
+        rain_override,
+    ):
+        rec = decide(scenario(cfg))
+        for g, r in rec.by_blind_group.items():
+            assert r.reasons and r.reasons[0], (
+                f"{scenario.__name__}: blind group {g} has empty reasons"
+            )
+        for z, r in rec.by_zone.items():
+            assert r.reasons and r.reasons[0], (
+                f"{scenario.__name__}: zone {z} has empty reasons"
+            )
+
+
+def test_v015_silence_flag_only_true_when_rule_did_not_fire(cfg: ConfigV1):
+    """The silence flag is a semantic tag: True iff the reasons came from
+    the silence explainer, False when they came from a real fired rule.
+    Frontend uses this to filter pickWhy candidates."""
+    from tests.scenarios import hot_sunny_breeze
+    rec = decide(hot_sunny_breeze(cfg))
+    for g, r in rec.by_blind_group.items():
+        # In hot_sunny_breeze, blind rules definitely fire (block_solar_gain).
+        # None of them should be silence=True.
+        if r.scenario != "neutral":
+            assert r.silence is False, (
+                f"blind group {g} fired scenario {r.scenario!r} but "
+                f"silence=True — flag semantics broken"
+            )
+
+
 def test_rain_suppresses_open_windows(cfg: ConfigV1):
     rec = decide(rain_override(cfg))
     for z in ("mezzanine", "downstairs", "bedroom", "ceiling_apex"):

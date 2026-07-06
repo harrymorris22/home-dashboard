@@ -53,7 +53,15 @@ export function NextActionsPanel({ actions }: { actions: NextAction[] }) {
       <h2 className="hud-label mb-3">Next actions</h2>
       <ul className="space-y-3">
         {grouped.map(([ts, items]) => {
-          const reason = items.find((i) => i.reasoning)?.reasoning ?? "";
+          // v0.15: if every item in this group shares the same reasoning,
+          // render one collective "Why:" line (previous behaviour). If
+          // reasons differ (e.g. one blind fires block_solar_gain while a
+          // window fires cross_ventilate at the same tick), render each
+          // reason inline per item so no information is lost.
+          const distinctReasons = new Set(
+            items.map((i) => i.reasoning).filter(Boolean)
+          );
+          const shared = distinctReasons.size === 1 ? items[0].reasoning : null;
           return (
             <li key={ts} className="flex flex-col gap-1">
               <div className="flex items-baseline justify-between text-sm">
@@ -62,10 +70,17 @@ export function NextActionsPanel({ actions }: { actions: NextAction[] }) {
               </div>
               <ul className="text-sm space-y-0.5 text-primary">
                 {items.map((it, i) => (
-                  <li key={`${ts}-${i}`}>• {describeTransition(it)}</li>
+                  <li key={`${ts}-${i}`}>
+                    • {describeTransition(it)}
+                    {!shared && it.reasoning && (
+                      <span className="text-xs text-secondary">
+                        {" "}· {it.reasoning}
+                      </span>
+                    )}
+                  </li>
                 ))}
               </ul>
-              {reason && <p className="text-xs text-secondary">Why: {reason}</p>}
+              {shared && <p className="text-xs text-secondary">Why: {shared}</p>}
             </li>
           );
         })}

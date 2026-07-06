@@ -76,14 +76,47 @@ function windowSummary(rec: Recommendations): string {
 }
 
 function pickWhy(rec: Recommendations): string | null {
-  const reasons: string[] = [];
-  for (const g of Object.values(rec.by_blind_group)) reasons.push(...g.reasons);
-  for (const z of Object.values(rec.by_zone)) reasons.push(...z.reasons);
-  const filtered = reasons.filter((r) => r && r.trim().length > 0);
-  if (filtered.length === 0) return null;
-  const unique = Array.from(new Set(filtered));
-  unique.sort((a, b) => b.length - a.length);
-  return unique[0];
+  // v0.15: two-pass.
+  //   Pass 1 — filter out silence-tagged reasons; a real fired-rule reason
+  //            should always win the headline slot.
+  //   Pass 2 — if no fired reason exists (weather offline, all-neutral),
+  //            fall back to silence reasons so per-zone ↳ lines can
+  //            deduplicate against a headline instead of showing the same
+  //            string on every row.
+  const firedReasons: string[] = [];
+  const silenceReasons: string[] = [];
+  for (const g of Object.values(rec.by_blind_group)) {
+    (g.silence ? silenceReasons : firedReasons).push(...g.reasons);
+  }
+  for (const z of Object.values(rec.by_zone)) {
+    (z.silence ? silenceReasons : firedReasons).push(...z.reasons);
+  }
+  const pick = (pool: string[]) => {
+    const filtered = pool.filter((r) => r && r.trim().length > 0);
+    if (filtered.length === 0) return null;
+    const unique = Array.from(new Set(filtered));
+    unique.sort((a, b) => b.length - a.length);
+    return unique[0];
+  };
+  return pick(firedReasons) ?? pick(silenceReasons);
+}
+
+/** Combine per-zone blind + window reasoning into one line for the ↳
+ * annotation. Returns null when both reasons are empty OR when both
+ * duplicate the top-level headline (no new info to show). */
+function zoneReasonLine(
+  blindReason: string | undefined,
+  windowReason: string | undefined,
+  headline: string | null,
+): string | null {
+  const blindNew = blindReason && blindReason !== headline ? blindReason : null;
+  const windowNew =
+    windowReason && windowReason !== headline ? windowReason : null;
+  if (!blindNew && !windowNew) return null;
+  const parts: string[] = [];
+  if (blindNew) parts.push(`Blinds: ${blindNew}`);
+  if (windowNew) parts.push(`Window: ${windowNew}`);
+  return parts.join(" · ");
 }
 
 function blindCurrent(pct: number): string {
@@ -207,18 +240,32 @@ export function ActionPanel({
           urgencies.push(window.urgency);
           const u = maxUrgency(urgencies);
 
+          // v0.15: per-zone reasoning line. Combine blind + window reasons,
+          // skip when both match the headline (no new info). ceiling_apex
+          // has no blind group, so blindReason falls through as undefined.
+          const blindReason = blind ? blind.reasons[0] : undefined;
+          const windowReason = window.reasons[0];
+          const reasonLine = zoneReasonLine(blindReason, windowReason, why);
+
           return (
-            <li key={zone} className="flex items-center gap-2">
-              <span className={`inline-block h-2 w-2 rounded-full ${urgencyClass[u]}`} />
-              <span className="text-secondary w-28">{ZONE_LABEL[zone]}:</span>
-              <span className="text-primary">
-                {parts.map((p, i) => (
-                  <span key={i} className={p.muted ? "text-secondary" : ""}>
-                    {i > 0 && <span className="text-secondary"> · </span>}
-                    {p.text}
-                  </span>
-                ))}
-              </span>
+            <li key={zone} className="flex flex-col gap-0.5">
+              <div className="flex items-center gap-2">
+                <span className={`inline-block h-2 w-2 rounded-full ${urgencyClass[u]}`} />
+                <span className="text-secondary w-28">{ZONE_LABEL[zone]}:</span>
+                <span className="text-primary">
+                  {parts.map((p, i) => (
+                    <span key={i} className={p.muted ? "text-secondary" : ""}>
+                      {i > 0 && <span className="text-secondary"> · </span>}
+                      {p.text}
+                    </span>
+                  ))}
+                </span>
+              </div>
+              {reasonLine && (
+                <div className="text-xs text-secondary pl-4">
+                  ↳ {reasonLine}
+                </div>
+              )}
             </li>
           );
         })}
