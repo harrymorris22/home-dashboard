@@ -98,11 +98,31 @@ def test_mild_outdoor_warm_indoor_opens_windows(cfg: ConfigV1):
 
 
 def test_mild_cloudy_daytime_opens_blinds_too(cfg: ConfigV1):
-    """No solar-gain risk → blinds up for natural light + airflow."""
+    """No solar-gain risk → blinds up for natural light."""
     rec = decide(mild_outdoor_warm_indoor(cfg))
     for g in ("mezz", "downstairs", "bedroom"):
         assert rec.by_blind_group[g].blind_pct == 0, f"{g} should be up"
         assert rec.by_blind_group[g].scenario == "daytime_light"
+
+
+def test_let_light_in_reasoning_does_not_promise_airflow(cfg: ConfigV1):
+    """REGRESSION (v0.14): the let_light_in rule only opens blinds, never
+    windows. Promising "airflow" in the reasoning was a lie whenever the
+    rule fired without cross_ventilate — which happens on any warm-cloudy
+    day where outdoor is warmer than indoor. User reported the confusion.
+    """
+    rec = decide(mild_outdoor_warm_indoor(cfg))
+    for g in ("mezz", "downstairs", "bedroom"):
+        rec_group = rec.by_blind_group[g]
+        # This scenario should fire let_light_in.
+        assert rec_group.scenario == "daytime_light"
+        # And its reasoning must not claim to deliver airflow that only
+        # cross_ventilate can actually produce.
+        for reason in rec_group.reasons:
+            assert "airflow" not in reason.lower(), (
+                f"let_light_in reasoning for {g} still claims airflow: {reason!r}. "
+                f"This rule only sets blind_targets; airflow needs cross_ventilate."
+            )
 
 
 def test_rain_suppresses_open_windows(cfg: ConfigV1):

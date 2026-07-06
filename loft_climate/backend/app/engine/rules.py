@@ -121,7 +121,12 @@ def _let_light_in(f: Facts) -> RuleOutput:
         blind_targets=_all_blinds_up(),
         urgency="green",
         scenario="daytime_light",
-        reasoning=f"{cause.capitalize()} — no solar gain to block. Blinds up for natural light and airflow.",
+        # v0.14: dropped "and airflow" from the reasoning. This rule only
+        # sets blind_targets; it doesn't open windows. Airflow requires
+        # _cross_ventilate to also fire (which needs outdoor cooler than
+        # indoor by ≥1.5°C). When both fire the user sees both. When only
+        # this fires, promising airflow was a lie.
+        reasoning=f"{cause.capitalize()} — no solar gain to block. Blinds up for natural light.",
     )
 
 
