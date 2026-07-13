@@ -1,128 +1,133 @@
-import type { CurrentState, Recommendations, ZoneId, BlindGroupId } from "../api/types";
+import type { CurrentState, Recommendations, ZoneId } from "../api/types";
 import { Card } from "../_shared/Card";
-import { type Urgency, urgencyText, urgencyClass, maxUrgency } from "../_shared/urgency";
+import { type Urgency, urgencyText } from "../_shared/urgency";
 import { UrgencyDot } from "./UrgencyDot";
 
 const ZONE_LABEL: Record<string, string> = {
-  mezzanine: "Office",
-  downstairs: "Downstairs",
-  ceiling_apex: "Ceiling apex",
-  bedroom: "Bedroom",
-};
-
-const GROUP_LABEL: Record<string, string> = {
-  mezz: "mezzanine",
+  mezzanine: "office",
   downstairs: "downstairs",
+  ceiling_apex: "apex",
   bedroom: "bedroom",
 };
 
-const ZONE_TO_GROUP: Partial<Record<ZoneId, BlindGroupId>> = {
-  mezzanine: "mezz",
+const GROUP_LABEL: Record<string, string> = {
+  mezz: "office",
   downstairs: "downstairs",
   bedroom: "bedroom",
 };
 
 const ZONE_ORDER: ZoneId[] = ["mezzanine", "downstairs", "ceiling_apex", "bedroom"];
+const ZONE_INDEX: Record<ZoneId, number> = {
+  mezzanine: 0,
+  downstairs: 1,
+  ceiling_apex: 2,
+  bedroom: 3,
+};
+const URGENCY_RANK: Record<Urgency, number> = { red: 0, amber: 1, green: 2 };
 
-function listJoin(items: string[]): string {
-  if (items.length <= 1) return items.join("");
-  if (items.length === 2) return `${items[0]} and ${items[1]}`;
-  return `${items.slice(0, -1).join(", ")}, and ${items[items.length - 1]}`;
+type Task = {
+  id: string;
+  actuator: "blind" | "window";
+  zoneIdx: number;
+  verb: string;
+  hint: string;
+  done: boolean;
+  urgency: Urgency;
+};
+
+function blindVerb(group: string, target: number): string {
+  const label = GROUP_LABEL[group] ?? group;
+  // Binary blinds: engine emits 0 or 100. Treat >=75 as down, <=25 as up,
+  // anything else as a partial position (rare with Tahoma binary blinds).
+  if (target >= 75) return `Pull ${label} blinds down`;
+  if (target <= 25) return `Raise ${label} blinds`;
+  return `Set ${label} blinds to ${target}%`;
 }
 
-function blindWord(pct: number): string {
-  if (pct >= 75) return "down";
-  if (pct <= 25) return "up";
-  return `${pct}%`;
+function windowVerb(zone: string, target: boolean): string {
+  const label = ZONE_LABEL[zone] ?? zone;
+  return target ? `Open ${label} window` : `Close ${label} window`;
 }
 
-function blindSummary(rec: Recommendations): string {
-  const groups = Object.values(rec.by_blind_group);
-  const fired = groups.filter((g) => g.scenario !== "neutral");
-  if (fired.length === 0) return "no change";
-
-  // Group by position word.
-  const byPosition: Record<string, string[]> = {};
-  for (const g of fired) {
-    const word = blindWord(g.blind_pct);
-    (byPosition[word] ||= []).push(GROUP_LABEL[g.group]);
-  }
-  const positions = Object.keys(byPosition);
-
-  // Single uniform position across every actuator the engine cares about.
-  if (positions.length === 1 && fired.length === groups.length) {
-    return `all ${positions[0]} (${fired[0].blind_pct}%)`;
-  }
-  // Mixed — list each subset.
-  const parts = positions.map((p) => `${listJoin(byPosition[p])} ${p}`);
-  return parts.join("; ");
+function isBlindDone(target: number, current: number | undefined): boolean {
+  if (current === undefined) return false;
+  if (target >= 75 && current >= 75) return true;
+  if (target <= 25 && current <= 25) return true;
+  return target === current;
 }
 
-function windowSummary(rec: Recommendations): string {
-  const zones = Object.values(rec.by_zone);
-  const fired = zones.filter((z) => z.window_open !== null);
-  if (fired.length === 0) return "no change";
+/** Pure task-list derivation. Test-friendly. */
+function buildTasks(rec: Recommendations, currentState?: CurrentState): Task[] {
+  const tasks: Task[] = [];
 
-  const open = fired.filter((z) => z.window_open === true).map((z) => ZONE_LABEL[z.zone]);
-  const closed = fired.filter((z) => z.window_open === false).map((z) => ZONE_LABEL[z.zone]);
-
-  if (open.length === zones.length) return "all open";
-  if (closed.length === zones.length) return "all closed";
-
-  const parts: string[] = [];
-  if (open.length) parts.push(`${listJoin(open)} open`);
-  if (closed.length) parts.push(`${listJoin(closed)} closed`);
-  return parts.join("; ");
-}
-
-function pickWhy(rec: Recommendations): string | null {
-  // v0.15: two-pass.
-  //   Pass 1 — filter out silence-tagged reasons; a real fired-rule reason
-  //            should always win the headline slot.
-  //   Pass 2 — if no fired reason exists (weather offline, all-neutral),
-  //            fall back to silence reasons so per-zone ↳ lines can
-  //            deduplicate against a headline instead of showing the same
-  //            string on every row.
-  const firedReasons: string[] = [];
-  const silenceReasons: string[] = [];
+  // Blinds — 3 groups
   for (const g of Object.values(rec.by_blind_group)) {
-    (g.silence ? silenceReasons : firedReasons).push(...g.reasons);
+    if (g.scenario === "neutral" || g.silence) continue;
+    const current = currentState?.blinds?.[g.group];
+    tasks.push({
+      id: `blind:${g.group}`,
+      actuator: "blind",
+      zoneIdx:
+        g.group === "mezz"
+          ? ZONE_INDEX.mezzanine
+          : g.group === "downstairs"
+          ? ZONE_INDEX.downstairs
+          : ZONE_INDEX.bedroom,
+      verb: blindVerb(g.group, g.blind_pct),
+      hint: g.reasons[0] ?? "",
+      done: isBlindDone(g.blind_pct, current),
+      urgency: g.urgency,
+    });
   }
+
+  // Windows — 4 zones
   for (const z of Object.values(rec.by_zone)) {
-    (z.silence ? silenceReasons : firedReasons).push(...z.reasons);
+    if (z.window_open === null || z.silence) continue;
+    const current = currentState?.windows?.[z.zone];
+    const done = current !== undefined && current === z.window_open;
+    tasks.push({
+      id: `window:${z.zone}`,
+      actuator: "window",
+      zoneIdx: ZONE_INDEX[z.zone as ZoneId] ?? 99,
+      verb: windowVerb(z.zone, z.window_open),
+      hint: z.reasons[0] ?? "",
+      done,
+      urgency: z.urgency,
+    });
   }
-  const pick = (pool: string[]) => {
-    const filtered = pool.filter((r) => r && r.trim().length > 0);
-    if (filtered.length === 0) return null;
-    const unique = Array.from(new Set(filtered));
-    unique.sort((a, b) => b.length - a.length);
-    return unique[0];
+
+  return tasks;
+}
+
+/** Sort: undone first (urgency desc, then zone, then windows before blinds).
+ * Done tasks after, same secondary sort. */
+function sortTasks(tasks: Task[]): Task[] {
+  const rank = (t: Task) => {
+    const doneWeight = t.done ? 1000 : 0;
+    const urgencyWeight = URGENCY_RANK[t.urgency] * 100;
+    const zoneWeight = t.zoneIdx * 10;
+    const actuatorWeight = t.actuator === "window" ? 0 : 1;
+    return doneWeight + urgencyWeight + zoneWeight + actuatorWeight;
   };
-  return pick(firedReasons) ?? pick(silenceReasons);
+  return [...tasks].sort((a, b) => rank(a) - rank(b));
 }
 
-/** Combine per-zone blind + window reasoning into one line for the ↳
- * annotation. Returns null when both reasons are empty OR when both
- * duplicate the top-level headline (no new info to show). */
-function zoneReasonLine(
-  blindReason: string | undefined,
-  windowReason: string | undefined,
-  headline: string | null,
-): string | null {
-  const blindNew = blindReason && blindReason !== headline ? blindReason : null;
-  const windowNew =
-    windowReason && windowReason !== headline ? windowReason : null;
-  if (!blindNew && !windowNew) return null;
-  const parts: string[] = [];
-  if (blindNew) parts.push(`Blinds: ${blindNew}`);
-  if (windowNew) parts.push(`Window: ${windowNew}`);
-  return parts.join(" · ");
-}
-
-function blindCurrent(pct: number): string {
-  if (pct >= 75) return "down";
-  if (pct <= 25) return "up";
-  return `${pct}%`;
+/** Collect silence-only reasons for the fallback caption when there's no
+ * fired reason anywhere. Matches v0.15 pickWhy's two-pass shape. */
+function silenceFallback(rec: Recommendations): string | null {
+  const firedCount =
+    Object.values(rec.by_blind_group).filter((g) => !g.silence).length +
+    Object.values(rec.by_zone).filter((z) => !z.silence).length;
+  if (firedCount > 0) return null;
+  const silenceReasons: string[] = [];
+  for (const g of Object.values(rec.by_blind_group)) silenceReasons.push(...g.reasons);
+  for (const z of Object.values(rec.by_zone)) silenceReasons.push(...z.reasons);
+  const unique = Array.from(
+    new Set(silenceReasons.filter((r) => r && r.trim().length > 0)),
+  );
+  if (unique.length === 0) return null;
+  unique.sort((a, b) => b.length - a.length);
+  return unique[0];
 }
 
 export function ActionPanel({
@@ -132,17 +137,15 @@ export function ActionPanel({
   rec: Recommendations;
   currentState?: CurrentState;
 }) {
-  const blinds = blindSummary(rec);
-  const windows = windowSummary(rec);
-  const why = pickWhy(rec);
   const urgency: Urgency = rec.global.urgency;
-
-  const allNeutral = blinds === "no change" && windows === "no change";
+  const tasks = sortTasks(buildTasks(rec, currentState));
+  const undoneCount = tasks.filter((t) => !t.done).length;
+  const doneCount = tasks.length - undoneCount;
+  const silenceLine = silenceFallback(rec);
 
   // HA cover state should populate `currentState.blinds` for every group the
   // engine fired on. When it's empty AND we DO have blind recommendations,
-  // Tahoma is offline or the entity mapping is broken. Surface it directly
-  // so the user doesn't read the recommendation as a status statement.
+  // Tahoma is offline or the entity mapping is broken.
   const hasBlindRecs = Object.keys(rec.by_blind_group).length > 0;
   const knownBlinds = Object.keys(currentState?.blinds ?? {}).length;
   const blindStateMissing = hasBlindRecs && knownBlinds === 0;
@@ -156,120 +159,82 @@ export function ActionPanel({
 
       {blindStateMissing && (
         <div className="border border-primary rounded p-2 text-xs uppercase tracking-label font-bold text-primary">
-          ⚠ Blind state unknown — Tahoma not reporting. Recommendations below
-          are not based on current position.
+          ⚠ Blind state unknown — mark them below.
         </div>
       )}
 
-      {allNeutral ? (
-        <p className={`font-display text-2xl sm:text-3xl uppercase leading-snug ${urgencyText[urgency]}`}>
+      {tasks.length === 0 ? (
+        <p
+          className={`font-display text-2xl sm:text-3xl uppercase leading-snug ${urgencyText[urgency]}`}
+        >
           Nothing to do — your loft is in the comfort band.
         </p>
       ) : (
-        <div className={`font-display text-2xl sm:text-3xl uppercase leading-snug ${urgencyText[urgency]}`}>
-          <p>
-            <span className="hud-label">Blinds:</span>{" "}
-            {blinds}
-          </p>
-          <p>
-            <span className="hud-label">Windows:</span>{" "}
-            {windows}
-          </p>
-        </div>
+        <ul className="space-y-3">
+          {tasks.map((t, i) => {
+            const prev = tasks[i - 1];
+            const isFirstDone = t.done && (!prev || !prev.done);
+            return (
+              <li
+                key={t.id}
+                className={
+                  isFirstDone
+                    ? "grid grid-cols-[22px_1fr] gap-3 border-t border-secondary/30 pt-3"
+                    : "grid grid-cols-[22px_1fr] gap-3"
+                }
+              >
+                {t.done ? (
+                  <span
+                    aria-label="done"
+                    className="mt-0.5 inline-flex h-5 w-5 items-center justify-center border-2 border-secondary bg-secondary text-surface text-xs font-bold"
+                  >
+                    ✓
+                  </span>
+                ) : (
+                  <span
+                    aria-label="pending"
+                    className={`mt-0.5 inline-block h-5 w-5 border-2 ${
+                      t.urgency === "red"
+                        ? "border-tertiary"
+                        : "border-primary"
+                    } bg-surface`}
+                  />
+                )}
+                <div className="flex flex-col gap-0.5 min-w-0">
+                  <span
+                    className={
+                      t.done
+                        ? "text-secondary line-through text-sm"
+                        : "text-primary font-bold text-base leading-tight"
+                    }
+                  >
+                    {t.verb}
+                  </span>
+                  {t.hint && (
+                    <span
+                      className={`text-xs leading-snug ${
+                        t.done ? "text-secondary/70" : "text-secondary"
+                      }`}
+                    >
+                      {t.hint}
+                    </span>
+                  )}
+                </div>
+              </li>
+            );
+          })}
+        </ul>
       )}
 
-      {why && <p className="text-sm text-secondary">Why: {why}</p>}
+      {tasks.length === 0 && silenceLine && (
+        <p className="text-xs text-secondary">Why: {silenceLine}</p>
+      )}
 
-      <ul className="text-sm space-y-1.5 border-t border-secondary/30 pt-3">
-        {ZONE_ORDER.map((zone) => {
-          const window = rec.by_zone[zone];
-          const groupId = ZONE_TO_GROUP[zone];
-          const blind = groupId ? rec.by_blind_group[groupId] : undefined;
-          const currentBlind = groupId ? currentState?.blinds?.[groupId] : undefined;
-          const currentWindow = currentState?.windows?.[zone];
-
-          // Build per-actuator phrases.
-          // Recommendation-with-action ("blinds down (currently up)") is bold-ish prose;
-          // no-recommendation falls back to a dim "engine has no opinion" annotation
-          // so it doesn't get visually confused with a real instruction.
-          const parts: { text: string; muted: boolean }[] = [];
-
-          if (blind && blind.scenario !== "neutral") {
-            const want = blind.blind_pct;
-            let phrase = `blinds ${blindWord(want)} (${want}%)`;
-            if (currentBlind !== undefined) {
-              if (
-                (want >= 75 && currentBlind >= 75) ||
-                (want <= 25 && currentBlind <= 25) ||
-                want === currentBlind
-              ) {
-                phrase += " ✓ already";
-              } else {
-                phrase += ` (currently ${blindCurrent(currentBlind)})`;
-              }
-            } else {
-              // No HA cover state — annotate so the recommendation is not
-              // misread as "your blinds are currently at this position".
-              phrase += " (current unknown)";
-            }
-            parts.push({ text: phrase, muted: false });
-          } else if (groupId) {
-            const cur =
-              currentBlind !== undefined ? ` (you have them ${blindCurrent(currentBlind)})` : "";
-            parts.push({ text: `blinds — no recommendation${cur}`, muted: true });
-          }
-
-          if (window.window_open !== null) {
-            const want = window.window_open;
-            let phrase = `window ${want ? "open" : "closed"}`;
-            if (currentWindow !== undefined) {
-              if (currentWindow === want) phrase += " ✓ already";
-              else phrase += ` (currently ${currentWindow ? "open" : "closed"})`;
-            }
-            parts.push({ text: phrase, muted: false });
-          } else {
-            const cur =
-              currentWindow !== undefined
-                ? ` (it's ${currentWindow ? "open" : "closed"})`
-                : "";
-            parts.push({ text: `window — no recommendation${cur}`, muted: true });
-          }
-
-          const urgencies: Urgency[] = [];
-          if (blind) urgencies.push(blind.urgency);
-          urgencies.push(window.urgency);
-          const u = maxUrgency(urgencies);
-
-          // v0.15: per-zone reasoning line. Combine blind + window reasons,
-          // skip when both match the headline (no new info). ceiling_apex
-          // has no blind group, so blindReason falls through as undefined.
-          const blindReason = blind ? blind.reasons[0] : undefined;
-          const windowReason = window.reasons[0];
-          const reasonLine = zoneReasonLine(blindReason, windowReason, why);
-
-          return (
-            <li key={zone} className="flex flex-col gap-0.5">
-              <div className="flex items-center gap-2">
-                <span className={`inline-block h-2 w-2 rounded-full ${urgencyClass[u]}`} />
-                <span className="text-secondary w-28">{ZONE_LABEL[zone]}:</span>
-                <span className="text-primary">
-                  {parts.map((p, i) => (
-                    <span key={i} className={p.muted ? "text-secondary" : ""}>
-                      {i > 0 && <span className="text-secondary"> · </span>}
-                      {p.text}
-                    </span>
-                  ))}
-                </span>
-              </div>
-              {reasonLine && (
-                <div className="text-xs text-secondary pl-4">
-                  ↳ {reasonLine}
-                </div>
-              )}
-            </li>
-          );
-        })}
-      </ul>
+      {undoneCount > 0 && doneCount > 0 && (
+        <p className="text-xs text-secondary text-right">
+          {doneCount}/{tasks.length} done
+        </p>
+      )}
 
       {rec.prompts.length > 0 && (
         <ul className="text-xs space-y-1 text-secondary border-t border-secondary/30 pt-3">
@@ -281,3 +246,4 @@ export function ActionPanel({
     </Card>
   );
 }
+
