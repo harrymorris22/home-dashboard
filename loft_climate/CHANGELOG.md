@@ -1,0 +1,80 @@
+# Changelog
+
+## 0.16.0
+
+- "What to do" panel becomes a task checklist. One row per physical
+  action, verb-first, with a one-line hint. Rows auto-tick when the
+  blind/window state you mark below matches the recommendation, so the
+  existing state controls double as the "done" mechanism. Undone rows
+  sort by urgency then zone (windows before blinds); done rows sink
+  below a divider with a "X/N done" count.
+
+## 0.15.0
+
+- Reasoning transparency: rules that silence themselves now explain why
+  (e.g. "Weather offline — no outside data to decide") instead of
+  disappearing without trace.
+
+## 0.14.0
+
+- Fix: a blinds-only rule no longer claims it will improve airflow.
+  Reasoning text now matches the actuators the rule actually touches.
+
+## 0.13.0
+
+- Fix past-hour projections in the Next actions panel. Times in the
+  past are now clamped to "now" rather than displayed as if scheduled.
+
+## 0.12.0
+
+- User-input window state from the dashboard. Mark each window
+  open/closed to close the loop on ventilation recommendations.
+
+## 0.11.0
+
+- Tune `sun_on_glazing` geometry for the SE-facing loft. Fewer false
+  positives at low sun angles.
+
+## 0.10.0
+
+- Blinds-aware sun-on-SW classification: if the blinds are already
+  down, don't fire block-solar-gain again.
+
+## 0.9.0
+
+- User-input blind state from the dashboard. Mark each group so the
+  recommendation engine has the current position to compare against.
+
+## 0.8.0
+
+- Pluggable weather provider with Met.no as the default (no API key
+  required).
+
+## 0.7.0
+
+- Weather staleness contract: stale data no longer drives fresh
+  recommendations. Missing-blind-state UI banner surfaces when Tahoma
+  is offline.
+
+## 0.6.0
+
+- Strip legacy Entry + Simulate views. Slow tick now persists HA
+  sensor readings straight to the local DB.
+
+## 0.5.0
+
+- Sports HUD redesign: light theme, Archivo Black display face,
+  single accent reserved for RED urgency.
+
+## 0.4.0
+
+- Live blind state from Tahoma via the HA cover source.
+
+## 0.3.1
+
+- Fix PEM → raw base64url conversion before handing keys to
+  pywebpush.
+
+## 0.3.0
+
+- PWA + Web Push notifications (iOS Safari).
