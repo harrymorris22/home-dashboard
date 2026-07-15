@@ -11,6 +11,7 @@ from tests.scenarios import (
     hot_sunny_breeze,
     hot_sunny_still,
     mild_outdoor_warm_indoor,
+    mixed_zone_spread_partial_vent,
     post_sunset_purge,
     pre_dawn_pre_cool,
     rain_override,
@@ -88,6 +89,40 @@ def test_apex_stratification_triggers_stack_vent(cfg: ConfigV1):
     rec = decide(apex_stratification(cfg))
     # Mezz window must be open per stack-vent rule (priority 75).
     assert rec.by_zone["mezzanine"].window_open is True
+
+
+def test_v018_mixed_zone_spread_vents_only_hot_zones(cfg: ConfigV1):
+    """REGRESSION (v0.18): real-world scenario where zones diverge widely.
+    Office 30.1°C and Apex 29.5°C are hotter than outdoor 27.8°C by
+    >1.5°C → open. Downstairs 28.3°C is barely warmer → silent. Bedroom
+    24.6°C is COOLER than outdoor → silent (opening would import heat).
+
+    Pre-v0.18 this scenario silenced ALL windows because cross_ventilate
+    fired on house average (28.125°C — only 0.3°C above outdoor). User
+    reported the misleading 'no change' on every row when Office & Apex
+    were clearly vent-worthy."""
+    rec = decide(mixed_zone_spread_partial_vent(cfg))
+
+    # Office and Apex should get a real vent recommendation.
+    office = rec.by_zone["mezzanine"]
+    apex = rec.by_zone["ceiling_apex"]
+    assert office.window_open is True, "Office should open (30.1°C > outdoor 27.8°C)"
+    assert office.silence is False
+    assert office.scenario == "vent_to_cool"
+    assert "30.1" in office.reasons[0], (
+        f"Office reasoning must carry its own indoor temp: {office.reasons!r}"
+    )
+    assert apex.window_open is True, "Apex should open (29.5°C > outdoor 27.8°C)"
+    assert apex.silence is False
+    assert "29.5" in apex.reasons[0]
+
+    # Downstairs is not hot enough to warrant venting; Bedroom is cooler
+    # than outdoor. Both stay silent with honest per-zone reasoning.
+    bedroom = rec.by_zone["bedroom"]
+    assert bedroom.window_open is None
+    assert bedroom.silence is True
+    assert "24.6" in bedroom.reasons[0]
+    assert "import heat" in bedroom.reasons[0]
 
 
 def test_mild_outdoor_warm_indoor_opens_windows(cfg: ConfigV1):

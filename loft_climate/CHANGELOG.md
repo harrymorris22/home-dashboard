@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.18.0
+
+- Cross-ventilation now fires per zone instead of house-wide. When
+  Office and Apex are hotter than outdoor but Bedroom is cooler, the
+  hot zones get real "Open X window" tasks in the checklist and the
+  cool zone stays silent with "opening would import heat". Previously
+  the whole house was silenced if the average didn't cross the vent
+  threshold, hiding the per-zone opportunity.
+- Rule engine gained per-zone reasoning support so each window row's
+  explanation carries that zone's own indoor temp.
+
 ## 0.17.0
 
 - Window "no change" rows now report each zone's own indoor temp

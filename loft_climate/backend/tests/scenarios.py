@@ -266,6 +266,29 @@ def mild_outdoor_warm_indoor(cfg: ConfigV1) -> Snapshot:
     )
 
 
+def mixed_zone_spread_partial_vent(cfg: ConfigV1) -> Snapshot:
+    """Real user scenario 2026-07-15: Office 30.1, Downstairs 28.3,
+    Ceiling apex 29.5, Bedroom 24.6, outdoor 27.8. Office + Apex should
+    vent (hotter than outdoor by > 1.5°C); Downstairs + Bedroom should
+    stay silent (not hotter than outdoor by enough)."""
+    return Snapshot(
+        now=_ts(2026, 7, 15, 14),
+        zones={
+            "mezzanine": _zone("mezzanine", 30.1, humid=41),
+            "downstairs": _zone("downstairs", 28.3, humid=44),
+            "ceiling_apex": _zone("ceiling_apex", 29.5, humid=42),
+            "bedroom": _zone("bedroom", 24.6, humid=46),
+        },
+        weather=_weather(
+            temp=27.8, feels=28.5, cloud=30, wind=3.0, uvi=6.0,
+            forecast_max_temp=29.0,
+        ),
+        sun=_sun(elev=40, az=220),
+        config=cfg,
+        sw_lux=8000,
+    )
+
+
 def rain_override(cfg: ConfigV1) -> Snapshot:
     return Snapshot(
         now=_ts(2026, 7, 15, 14),
@@ -292,5 +315,6 @@ SCENARIOS = {
     "bedtime_too_warm": bedtime_too_warm,
     "bedroom_overheat_safety": bedroom_overheat_safety,
     "apex_stratification": apex_stratification,
+    "mixed_zone_spread_partial_vent": mixed_zone_spread_partial_vent,
     "rain_override": rain_override,
 }

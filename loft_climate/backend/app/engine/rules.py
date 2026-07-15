@@ -160,48 +160,67 @@ def _insulate_blinds(f: Facts) -> RuleOutput:
 # ---------------------------------------------------------------------------
 
 
-def _cross_ventilate_pred(f: Facts) -> bool:
-    """Open windows when indoor is warm AND outdoor is meaningfully cooler.
+def _zone_wants_cross_vent(zone: str, f: Facts) -> bool:
+    """Per-zone predicate: does opening THIS zone's window help cool it?
 
-    Fires regardless of outdoor classification (mild OR hot) — the physics is
-    "indoor > outdoor by enough", not "outdoor exceeds some absolute threshold".
-    Skipped when outdoor is cold_out (would chill the loft) or it's raining.
-    Wind helps but isn't required: stack-effect ventilates a two-storey loft
-    even on still days when the temp gradient is large.
+    Fires when the zone is warm (either classified 'hot' or above the
+    INDOOR_WARM_MIN_C threshold) AND outdoor is meaningfully cooler than
+    the zone's own temp. Pure function of the zone + facts — no house-wide
+    coupling, so a hot Office can vent while a cool Bedroom stays sealed.
     """
+    assert f.weather is not None
+    zone_t = f.zone_temp.get(zone)
+    if zone_t is None:
+        return False
+    zone_warm = f.zone_thermal.get(zone) == "hot" or zone_t > INDOOR_WARM_MIN_C
+    if not zone_warm:
+        return False
+    return f.weather.temp_c < zone_t - CROSS_VENT_MIN_DELTA_C
+
+
+def _cross_ventilate_pred(f: Facts) -> bool:
+    """Rule-level gate. Fires if AT LEAST ONE zone wants venting."""
     if f.weather is None or f.precip:
         return False
     if f.outdoor == "cold_out":
         return False
     if not f.zone_temp:
         return False
-    indoor_avg = f.house_avg_temp
-    indoor_warm = (
-        any(label == "hot" for label in f.zone_thermal.values())
-        or indoor_avg > INDOOR_WARM_MIN_C
-    )
-    if not indoor_warm:
-        return False
-    return f.weather.temp_c < indoor_avg - CROSS_VENT_MIN_DELTA_C
+    return any(_zone_wants_cross_vent(z, f) for z in f.zone_temp)
 
 
 def _cross_ventilate(f: Facts) -> RuleOutput:
+    """v0.18: emits per-zone targets — only the zones that actually want
+    venting get window_open=True. Cooler zones fall through to silence
+    ('opening would import heat'), which is now correct per-zone.
+    """
     assert f.weather is not None
-    delta = f.house_avg_temp - f.weather.temp_c
+    outdoor_t = f.weather.temp_c
     wind = f.weather.wind_speed_mps
     wind_phrase = (
         f"{wind:.1f} m/s breeze" if wind >= 1.5 else "still air; rely on stack effect"
     )
+    targets: dict[str, bool] = {}
+    per_zone: dict[str, str] = {}
+    for zone, zone_t in f.zone_temp.items():
+        if not _zone_wants_cross_vent(zone, f):
+            continue
+        targets[zone] = True
+        delta = zone_t - outdoor_t
+        per_zone[zone] = (
+            f"Indoor {zone_t:.1f}°C, outdoor {outdoor_t:.1f}°C "
+            f"({delta:.1f}°C cooler) — {wind_phrase}, open to vent."
+        )
     return RuleOutput(
         rule="cross_ventilate",
         priority=80,
-        window_targets=_all_windows(True),
+        window_targets=targets,
         urgency="amber",
         scenario="vent_to_cool",
-        reasoning=(
-            f"Indoor {f.house_avg_temp:.1f}°C, outdoor {f.weather.temp_c:.1f}°C "
-            f"({delta:.1f}°C cooler) — {wind_phrase}, open to vent heat."
-        ),
+        # Shared reasoning is a fallback; per_zone_window_reasoning is the
+        # source of truth for each firing zone.
+        reasoning="",
+        per_zone_window_reasoning=per_zone,
     )
 
 

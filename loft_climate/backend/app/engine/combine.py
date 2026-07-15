@@ -123,16 +123,20 @@ def combine(facts: Facts, outputs: list[RuleOutput], errors: list[str]) -> Dashb
             )
             continue
         values = [w.window_targets[zone] for w in winners]
+
+        def _reason_for(w: RuleOutput, zone: str = zone) -> str:
+            return w.per_zone_window_reasoning.get(zone) or w.reasoning
+
         if len(set(values)) == 1:
             value = values[0]
             scenario = winners[0].scenario
             urgency = _max_urgency([w.urgency for w in winners])
-            reasons = [w.reasoning for w in winners if w.reasoning]
+            reasons = [r for r in (_reason_for(w) for w in winners) if r]
         else:
             value = None
             scenario = "neutral"
             urgency = "amber"
-            reasons = [f"{w.rule}: {w.reasoning}" for w in winners]
+            reasons = [f"{w.rule}: {_reason_for(w)}" for w in winners]
         silence = False
         if not reasons:
             reasons = [explain_silence_window(zone, facts)]

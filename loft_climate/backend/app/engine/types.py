@@ -77,6 +77,13 @@ class RuleOutput:
     urgency: Urgency = "green"
     scenario: str = ""
     reasoning: str = ""
+    # v0.18: per-zone reasoning overrides for window recommendations. When a
+    # rule fires on multiple zones with genuinely different local conditions
+    # (e.g. cross_ventilate on a day where Office=30°C and Downstairs=28°C
+    # both qualify), the shared `reasoning` string can't carry each zone's
+    # own indoor temp. Combiner prefers per_zone_window_reasoning[zone] and
+    # falls back to `reasoning` when a zone isn't in the dict.
+    per_zone_window_reasoning: dict[str, str] = field(default_factory=dict)
 
 
 # --- Final dashboard recommendation --------------------------------------------------------
