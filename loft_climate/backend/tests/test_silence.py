@@ -132,10 +132,16 @@ def test_window_cold_outdoor(cfg):
 
 def test_window_outdoor_warmer_than_indoor(cfg):
     """The motivating bug: warm cloudy day where opening windows would
-    import heat. Silence must explicitly report the temps."""
+    import heat. Silence must explicitly report the temps — and use the
+    ZONE's own temp (not house average), so each dashboard row reflects
+    that zone's reality."""
     f = _facts(
         cfg,
         weather=_weather(temp_c=27.5),
+        zone_temp={
+            "mezzanine": 26.4, "downstairs": 26.4,
+            "ceiling_apex": 26.4, "bedroom": 26.4,
+        },
         house_avg_temp=26.4,
         outdoor="hot_out",
     )
@@ -145,18 +151,83 @@ def test_window_outdoor_warmer_than_indoor(cfg):
     assert "import heat" in result
 
 
+def test_window_per_zone_import_heat_uses_zone_temp(cfg):
+    """REGRESSION (v0.17.0): each row's silence must reflect that zone's
+    temp, not the house average. Bedroom cool while other zones are hot →
+    bedroom row correctly says opening would import heat."""
+    f = _facts(
+        cfg,
+        weather=_weather(temp_c=28.0),
+        zone_temp={
+            "mezzanine": 30.3, "downstairs": 28.4,
+            "ceiling_apex": 30.0, "bedroom": 23.6,
+        },
+        house_avg_temp=28.075,  # average of the four
+        outdoor="hot_out",
+    )
+    bedroom = explain_silence_window("bedroom", f)
+    assert "23.6" in bedroom
+    assert "28.0" in bedroom
+    assert "import heat" in bedroom
+
+
+def test_window_per_zone_would_vent(cfg):
+    """REGRESSION (v0.17.0): when a zone is meaningfully hotter than
+    outdoor but the house-average rule kept everything silent, the row
+    must NOT claim 'import heat' — it should suggest manual venting."""
+    f = _facts(
+        cfg,
+        weather=_weather(temp_c=28.0),
+        zone_temp={
+            "mezzanine": 30.3, "downstairs": 28.4,
+            "ceiling_apex": 30.0, "bedroom": 23.6,
+        },
+        house_avg_temp=28.075,
+        outdoor="hot_out",
+    )
+    office = explain_silence_window("mezzanine", f)
+    assert "30.3" in office
+    assert "28.0" in office
+    assert "import heat" not in office
+    assert "manually" in office
+
+
+def test_window_zone_sensor_offline_falls_back_to_house_avg(cfg):
+    """One zone's sensor is offline while others report — the row for the
+    offline zone still gets some thermal frame via house average."""
+    f = _facts(
+        cfg,
+        weather=_weather(temp_c=27.5),
+        zone_temp={"downstairs": 26.4, "ceiling_apex": 26.4, "bedroom": 26.4},
+        house_avg_temp=26.4,
+        outdoor="hot_out",
+    )
+    result = explain_silence_window("mezzanine", f)
+    assert "26.4" in result
+    assert "Sensor offline" in result
+
+
 def test_window_none_outdoor_label(cfg):
     f = _facts(cfg, outdoor=None)
     assert "Outdoor category unavailable" in explain_silence_window("mezzanine", f)
 
 
-def test_window_comfort_fallback(cfg):
-    """Outdoor is meaningfully cooler than indoor but no cross-vent rule
-    fires here (silence is only called when rules don't). Fallback branch."""
-    f = _facts(cfg, weather=_weather(temp_c=18.0), house_avg_temp=22.0)
-    # 18 < 22 - 1.5 → doesn't trigger the 'import heat' branch
+def test_window_cooler_outdoor_would_vent(cfg):
+    """Outdoor meaningfully cooler than the zone → the rule normally fires,
+    but if silence is invoked anyway (rule combiner edge cases), the row
+    should suggest manual venting rather than fall through to a bland
+    'comfort band met'."""
+    f = _facts(
+        cfg,
+        weather=_weather(temp_c=18.0),
+        zone_temp={
+            "mezzanine": 22.0, "downstairs": 22.0,
+            "ceiling_apex": 22.0, "bedroom": 22.0,
+        },
+        house_avg_temp=22.0,
+    )
     result = explain_silence_window("mezzanine", f)
-    assert "Comfort band met" in result
+    assert "manually" in result
 
 
 # --- length invariant ---------------------------------------------------
@@ -175,8 +246,12 @@ def test_window_comfort_fallback(cfg):
     ("window_import_heat", explain_silence_window,
      {"weather": _weather(temp_c=27.5), "house_avg_temp": 26.4, "outdoor": "hot_out"}),
     ("window_none_outdoor", explain_silence_window, {"outdoor": None}),
-    ("window_fallback", explain_silence_window,
+    ("window_would_vent", explain_silence_window,
      {"weather": _weather(temp_c=18.0), "house_avg_temp": 22.0}),
+    ("window_zone_offline", explain_silence_window,
+     {"weather": _weather(temp_c=27.5), "outdoor": "hot_out",
+      "zone_temp": {"downstairs": 26.4, "ceiling_apex": 26.4, "bedroom": 26.4},
+      "house_avg_temp": 26.4}),
 ])
 def test_silence_strings_within_length_cap(cfg, kind, fn, facts_overrides):
     """All silence strings must be ≤ SILENCE_MAX_CHARS (80). Design review

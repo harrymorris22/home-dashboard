@@ -52,25 +52,45 @@ def explain_silence_blind(group: str, facts: Facts) -> str:
 
 
 def explain_silence_window(zone: str, facts: Facts) -> str:
-    """Diagnostic: why is no rule firing on this window zone?"""
+    """Diagnostic: why is no rule firing on this window zone?
+
+    Uses the ZONE's own indoor temp (not house average) so each row in the
+    dashboard reflects that zone's reality. The cross-vent rule itself fires
+    house-wide on the average, so a zone can be meaningfully hotter than
+    outdoor and still get silenced — surface that case explicitly instead of
+    printing a misleading "would import heat" line.
+    """
     if facts.weather is None:
         return _cap("Weather offline — no outside data to decide.")
     if not facts.zone_temp:
         # Guards the case where all indoor sensors are offline. Without this,
-        # house_avg_temp defaults to 0.0 (classifier.py) and the delta line
-        # would fire "outdoor > indoor" for any positive outdoor temp.
+        # the delta line would compare against house_avg_temp=0.0 and lie.
         return _cap("Indoor sensors offline — no thermal comparison.")
     if facts.precip:
         return _cap("Rain — windows stay closed.")
     if facts.outdoor is None:
-        # Currently unreachable given classifier logic, but the type allows
-        # it. Explicit branch beats "safe by luck".
         return _cap("Outdoor category unavailable.")
     if facts.outdoor == "cold_out":
         return _cap("Outdoor cold — opening would chill the loft.")
-    if facts.weather.temp_c >= facts.house_avg_temp - CROSS_VENT_MIN_DELTA_C:
+
+    outdoor_t = facts.weather.temp_c
+    zone_t = facts.zone_temp.get(zone)
+    if zone_t is None:
+        # This zone's sensor is offline while others are reporting. Fall
+        # back to house average so the user still gets *some* thermal frame.
         return _cap(
-            f"Outdoor {facts.weather.temp_c:.1f}°C ≥ indoor "
-            f"{facts.house_avg_temp:.1f}°C — opening would import heat."
+            f"Sensor offline — house avg {facts.house_avg_temp:.1f}°C."
         )
-    return _cap("Comfort band met, no ventilation trigger.")
+
+    if outdoor_t >= zone_t - CROSS_VENT_MIN_DELTA_C:
+        return _cap(
+            f"Outdoor {outdoor_t:.1f}°C ≥ indoor {zone_t:.1f}°C — "
+            "opening would import heat."
+        )
+    # Zone is meaningfully hotter than outdoor, yet the house-average rule
+    # didn't fire (cooler zones drag the average below the vent gate). The
+    # user can still open this window manually to vent it.
+    return _cap(
+        f"Indoor {zone_t:.1f}°C > outdoor {outdoor_t:.1f}°C — "
+        "open manually to vent."
+    )

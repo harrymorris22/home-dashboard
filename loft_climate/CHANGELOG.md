@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.17.0
+
+- Window "no change" rows now report each zone's own indoor temp
+  instead of the house average, so the reasoning line for the office
+  no longer claims "indoor 28°C" when the office is actually 30°C.
+- When a zone is meaningfully hotter than outdoor but the house-wide
+  vent rule stayed silent (cooler zones drag the average down), the
+  row now suggests opening manually to vent instead of falsely
+  claiming that opening would import heat.
+
 ## 0.16.0
 
 - "What to do" panel becomes a task checklist. One row per physical
