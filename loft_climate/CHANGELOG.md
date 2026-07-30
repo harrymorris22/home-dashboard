@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.19.0
+
+- New `/api/weather/history?days=N` endpoint returns every cached Met.no
+  snapshot from the last N days (capped at 90). Enables plotting the
+  outdoor sensor against Met.no over weeks to see when and how the
+  sensor over-reads. Payload is raw fetches (~1 per 10 minutes); the
+  client aggregates to whatever bucket it needs.
+
 ## 0.18.0
 
 - Cross-ventilation now fires per zone instead of house-wide. When

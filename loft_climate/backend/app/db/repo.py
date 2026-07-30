@@ -106,6 +106,23 @@ def latest_weather_row(session: Session) -> WeatherCache | None:
     return session.scalars(stmt).first()
 
 
+def weather_rows_range(
+    session: Session, start: datetime, end: datetime
+) -> list[WeatherCache]:
+    """Every cached Met.no snapshot in [start, end], oldest first.
+
+    Used by /api/weather/history to reconstruct what Met.no said over a
+    historical window (for e.g. calibrating the SwitchBot outdoor sensor
+    against Met.no readings hour-by-hour).
+    """
+    stmt = (
+        select(WeatherCache)
+        .where(WeatherCache.fetched_at >= start, WeatherCache.fetched_at <= end)
+        .order_by(WeatherCache.fetched_at.asc())
+    )
+    return list(session.scalars(stmt).all())
+
+
 def insert_weather(session: Session, row: WeatherCache) -> int:
     session.add(row)
     session.flush()
