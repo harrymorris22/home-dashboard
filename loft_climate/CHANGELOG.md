@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.20.1
+
+- Fix: clicking "Recalibrate now" on the Config page blanked the whole
+  page. POST /api/outdoor/bias returned only `{calibration}` while GET
+  returned `{calibration, settings}`; the frontend fed the POST
+  response into its SWR cache, `settings` disappeared, and the next
+  render crashed. Backend now returns the same envelope from both
+  routes; frontend re-fetches via GET after a successful POST and
+  falls back to defensive setting defaults so a partial payload can
+  never blank the page again.
+
 ## 0.20.0
 
 - Outdoor SwitchBot sensor now bias-corrected before the rules see it.

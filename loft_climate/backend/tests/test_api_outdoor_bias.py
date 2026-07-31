@@ -68,3 +68,22 @@ def test_post_bias_fails_cleanly_without_ha_or_config(monkeypatch):
     resp = client.post("/api/outdoor/bias")
     assert resp.status_code in (400, 503)
     assert "detail" in resp.json()
+
+
+def test_get_bias_envelope_always_has_settings():
+    """REGRESSION (v0.20.1): the frontend renders data.settings.correction
+    unconditionally. If the envelope ever omitted settings the whole
+    Config page would crash. Test that GET *always* includes settings
+    with all five keys, even when there's no calibration row."""
+    client = TestClient(create_app())
+    resp = client.get("/api/outdoor/bias")
+    body = resp.json()
+    assert "settings" in body
+    for k in (
+        "correction",
+        "microclimate_baseline_c",
+        "clearness_floor",
+        "fit_window_days",
+        "fit_interval_days",
+    ):
+        assert k in body["settings"], f"settings missing {k!r}"

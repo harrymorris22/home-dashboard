@@ -39,13 +39,17 @@ def get_bias(session: Session = Depends(get_session)):
     row = repo.latest_outdoor_calibration(session)
     return {
         "calibration": _serialise(row) if row is not None else None,
-        "settings": {
-            "correction": cfg.outdoor.correction,
-            "microclimate_baseline_c": cfg.outdoor.microclimate_baseline_c,
-            "clearness_floor": cfg.outdoor.clearness_floor,
-            "fit_window_days": cfg.outdoor.fit_window_days,
-            "fit_interval_days": cfg.outdoor.fit_interval_days,
-        },
+        "settings": _settings_payload(cfg),
+    }
+
+
+def _settings_payload(cfg) -> dict:
+    return {
+        "correction": cfg.outdoor.correction,
+        "microclimate_baseline_c": cfg.outdoor.microclimate_baseline_c,
+        "clearness_floor": cfg.outdoor.clearness_floor,
+        "fit_window_days": cfg.outdoor.fit_window_days,
+        "fit_interval_days": cfg.outdoor.fit_interval_days,
     }
 
 
@@ -54,11 +58,13 @@ async def recalibrate(
     request: Request,
     session: Session = Depends(get_session),
 ):
-    """Force an immediate refit. Returns the new curve (or 400 if the
-    outdoor sensor entity isn't configured — nothing to correlate)."""
+    """Force an immediate refit. Returns the same envelope as GET so the
+    frontend can drop this into its SWR cache without losing ``settings``.
+    400 if the outdoor sensor entity isn't configured, 503 if the HA
+    client is not yet available (add-on still starting)."""
     cfg = load_config()
-    settings = get_settings()
-    outdoor_entity = settings.ha_outdoor_entities.get("temp")
+    app_settings = get_settings()
+    outdoor_entity = app_settings.ha_outdoor_entities.get("temp")
     if not outdoor_entity:
         raise HTTPException(
             status_code=400,
@@ -71,9 +77,13 @@ async def recalibrate(
             detail="HA client not available (add-on still starting?)",
         )
     row = await run_calibration(session, ha_client, cfg, outdoor_entity)
+    resp: dict = {
+        "calibration": _serialise(row) if row is not None else None,
+        "settings": _settings_payload(cfg),
+    }
     if row is None:
-        return {
-            "calibration": None,
-            "note": "No overlapping SwitchBot + Met.no history yet. Try again after a day or so.",
-        }
-    return {"calibration": _serialise(row)}
+        resp["note"] = (
+            "No overlapping SwitchBot + Met.no history yet. "
+            "Try again after a day or so."
+        )
+    return resp

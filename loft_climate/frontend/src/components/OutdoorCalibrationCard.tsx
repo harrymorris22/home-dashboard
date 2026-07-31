@@ -39,7 +39,10 @@ export function OutdoorCalibrationCard() {
     setBusy(true);
     try {
       const resp = await api.post<BiasResponse>("/api/outdoor/bias");
-      await mutate(resp, { revalidate: false });
+      // Force a fresh GET rather than substituting the POST response
+      // directly — even though POST now returns the same envelope, this
+      // stays correct if a future POST ever returns a partial payload.
+      await mutate();
       setMsg(
         resp.calibration
           ? { kind: "ok", text: "Refit complete." }
@@ -73,7 +76,16 @@ export function OutdoorCalibrationCard() {
   const cal = data.calibration;
   const bias = cal?.bias_by_hour ?? [];
   const counts = cal?.sample_counts ?? [];
-  const settings = data.settings;
+  // Defensive default. If a future POST ever returns a payload without
+  // settings and we forget to guard downstream, this stops the whole page
+  // blanking on a render exception.
+  const settings = data.settings ?? {
+    correction: "sensor_bias_corrected" as const,
+    microclimate_baseline_c: 1.5,
+    clearness_floor: 0.15,
+    fit_window_days: 30,
+    fit_interval_days: 7,
+  };
 
   // Scale bars to the shared max magnitude so positive and negative
   // biases share a visual axis. Baseline reference line at
