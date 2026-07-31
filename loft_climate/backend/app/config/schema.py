@@ -156,6 +156,44 @@ class Solar(BaseModel):
         return self
 
 
+class Outdoor(BaseModel):
+    """Bias-correction of the outdoor sensor reading.
+
+    The SwitchBot outdoor sensor absorbs direct sun during morning hours,
+    reading up to +8°C over true air temp (see v0.19 calibration data).
+    This section models the artifact so the raw sensor value can be
+    corrected before entering the vent-decision rules. See
+    ``app/weather/correction.py``.
+
+    correction:
+      - ``sensor_only``: return the raw sensor reading, no correction.
+      - ``sensor_bias_corrected`` (default): subtract the excess bias
+        (fitted hourly curve minus microclimate baseline) scaled by how
+        clear the sky is right now.
+
+    microclimate_baseline_c: overnight/no-sun bias between sensor and
+      Met.no. Kept as-is because it reflects real building-vs-grid-cell
+      microclimate. Only bias *above* this baseline is treated as a sensor
+      artifact and subtracted.
+
+    clearness_floor: minimum multiplier applied to the excess bias even
+      on fully-overcast days. Captures the residual heating from diffuse
+      radiation reaching the sensor casing.
+
+    fit_window_days: how many days of joined SwitchBot + Met.no history
+      the calibrator uses to fit the hourly bias curve. 30 gives a stable
+      average without lagging seasonal sun-angle drift too badly.
+
+    fit_interval_days: how often the scheduler re-fits the curve. Weekly
+      keeps the correction current as sun angle drifts across the year.
+    """
+    correction: Literal["sensor_only", "sensor_bias_corrected"] = "sensor_bias_corrected"
+    microclimate_baseline_c: float = 1.5
+    clearness_floor: float = Field(default=0.15, ge=0.0, le=1.0)
+    fit_window_days: int = Field(default=30, ge=7, le=90)
+    fit_interval_days: int = Field(default=7, ge=1, le=30)
+
+
 class ConfigV1(BaseModel):
     version: Literal[1] = 1
     location: Location
@@ -170,6 +208,7 @@ class ConfigV1(BaseModel):
     air: Air
     engine: Engine
     solar: Solar
+    outdoor: Outdoor = Field(default_factory=Outdoor)
     notifications: Notifications = Field(default_factory=Notifications)
 
     @model_validator(mode="after")

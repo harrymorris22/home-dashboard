@@ -27,5 +27,6 @@
   "weather": {"fetch_interval_seconds": 600, "stale_after_seconds": 1800},
   "air":     {"suppress_purge_aqi_above": 3},
   "engine":  {"tie_breaker": "no_change", "log_recommendations": true, "dwell_minutes": 20, "stale_after_minutes": 90},
-  "solar":   {"uvi_high": 6, "uvi_moderate": 3}
+  "solar":   {"uvi_high": 6, "uvi_moderate": 3},
+  "outdoor": {"correction": "sensor_bias_corrected", "microclimate_baseline_c": 1.5, "clearness_floor": 0.15, "fit_window_days": 30, "fit_interval_days": 7}
 }

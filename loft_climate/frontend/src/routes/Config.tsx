@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { api } from "../api/client";
 import { useConfig } from "../api/hooks";
 import { ComfortBandsForm } from "../components/ComfortBandsForm";
+import { OutdoorCalibrationCard } from "../components/OutdoorCalibrationCard";
 import { Card } from "../_shared/Card";
 
 export function Config() {
@@ -49,6 +50,8 @@ export function Config() {
       )}
 
       <ComfortBandsForm />
+
+      <OutdoorCalibrationCard />
 
       <Card>
         <button

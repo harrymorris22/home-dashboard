@@ -67,6 +67,11 @@ class PushScheduler:
         # restart, which is fine — the next slow tick re-runs that day.
         # DELETE on already-pruned rows is a no-op.
         self._last_prune_date: date | None = None
+        # Outdoor bias calibration: initialised from the DB on first tick so
+        # we don't refit unnecessarily after a restart. None until we've
+        # checked, then either a datetime (last known fit) or the epoch (no
+        # calibration yet, refit ASAP).
+        self._last_calibration_at: datetime | None = None
 
     async def start(self) -> None:
         self._stop.clear()
@@ -184,6 +189,54 @@ class PushScheduler:
                 except Exception:
                     log.exception("[snapshot-prune] failed; non-fatal")
                     session.rollback()
+
+            # v0.20: weekly outdoor sensor recalibration. Non-fatal on
+            # failure — the last good curve keeps running. On first
+            # startup this fires immediately so a fresh install starts
+            # generating a curve without waiting a week.
+            try:
+                await self._maybe_recalibrate_outdoor(session, cfg, now_u)
+            except Exception:
+                log.exception("[outdoor-calibrate] failed; non-fatal")
+                session.rollback()
+
+    # --- outdoor calibration -----------------------------------------------
+
+    async def _maybe_recalibrate_outdoor(
+        self, session: Session, cfg, now_u: datetime
+    ) -> None:
+        """Fire the bias calibrator if enough time has passed since the
+        last fit (or if none exists yet). Wired to the slow tick because
+        weekly cadence doesn't need its own loop."""
+        from app.outdoor.calibrator import run_calibration
+
+        # First tick after startup: seed _last_calibration_at from DB.
+        if self._last_calibration_at is None:
+            latest = repo.latest_outdoor_calibration(session)
+            self._last_calibration_at = latest.fitted_at if latest is not None else datetime.min.replace(tzinfo=timezone.utc)
+
+        interval = timedelta(days=cfg.outdoor.fit_interval_days)
+        if now_u - self._last_calibration_at < interval:
+            return
+
+        settings = get_settings()
+        outdoor_entity = settings.ha_outdoor_entities.get("temp") if settings.ha_outdoor_entities else None
+        if not outdoor_entity:
+            return  # no outdoor sensor configured; nothing to calibrate
+        if self.ha_client is None:
+            return
+
+        log.info(
+            "[outdoor-calibrate] fitting bias curve (window=%dd, since last fit=%s)",
+            cfg.outdoor.fit_window_days,
+            (now_u - self._last_calibration_at),
+        )
+        row = await run_calibration(session, self.ha_client, cfg, outdoor_entity)
+        # Record fit time regardless of persistence so we don't hammer HA
+        # when there's not enough data yet.
+        self._last_calibration_at = now_u
+        if row is not None:
+            log.info("[outdoor-calibrate] persisted new curve id=%s", row.id)
 
     # ---------------------------------------------------------------------
 

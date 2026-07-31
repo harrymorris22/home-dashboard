@@ -1,11 +1,15 @@
 from __future__ import annotations
 
+import json
+import logging
 from dataclasses import replace
 from datetime import datetime, timezone
+from zoneinfo import ZoneInfo
 
 from sqlalchemy.orm import Session
 
 from app.config.schema import ConfigV1
+from app.db import repo
 from app.engine.types import Snapshot
 from app.sensors.source import (
     ActuatorStateSource,
@@ -15,7 +19,10 @@ from app.sensors.source import (
 )
 from app.sun import calculator as suncalc
 from app.weather import cache as weather_cache
+from app.weather.correction import corrected_outdoor_temp
 from app.weather.feels_like import apparent_temp_outdoor
+
+log = logging.getLogger(__name__)
 
 
 class SnapshotBuilder:
@@ -45,14 +52,21 @@ class SnapshotBuilder:
         if weather is not None and self.outdoor_source is not None:
             outdoor = self.outdoor_source.latest()
             if outdoor is not None:
+                raw_temp = outdoor.temp_c
+                # v0.20: strip the solar-heating artifact from the SwitchBot
+                # reading before feeding it to the rules. Falls through to
+                # raw when correction is disabled or no calibration exists.
+                effective_temp = _apply_correction(
+                    self.session, self.cfg, raw_temp, weather.cloud_cover_pct, now
+                )
                 feels = apparent_temp_outdoor(
-                    outdoor.temp_c,
+                    effective_temp,
                     outdoor.humidity_pct,
                     weather.wind_speed_mps,
                 )
                 weather = replace(
                     weather,
-                    temp_c=outdoor.temp_c,
+                    temp_c=effective_temp,
                     humidity_pct=(
                         outdoor.humidity_pct
                         if outdoor.humidity_pct is not None
@@ -81,3 +95,38 @@ class SnapshotBuilder:
             current_blind=current_blind,
             current_window=current_window,
         )
+
+
+def _apply_correction(
+    session: Session,
+    cfg: ConfigV1,
+    raw_temp: float,
+    cloud_cover_pct: float | None,
+    now: datetime,
+) -> float:
+    """Look up the latest fitted bias curve and correct the sensor reading.
+
+    Never raises: on any error (no calibration row, bad JSON, missing tz)
+    returns the raw reading and logs a warning. That way a corrupt row
+    can't break the whole snapshot pipeline.
+    """
+    if cfg.outdoor.correction == "sensor_only":
+        return raw_temp
+    try:
+        row = repo.latest_outdoor_calibration(session)
+        if row is None:
+            return raw_temp
+        bias_by_hour = json.loads(row.bias_by_hour_json)
+        tz = ZoneInfo(cfg.location.timezone)
+        hour_local = now.astimezone(tz).hour
+        return corrected_outdoor_temp(
+            raw_temp,
+            hour_local,
+            cloud_cover_pct,
+            bias_by_hour,
+            cfg.outdoor.microclimate_baseline_c,
+            cfg.outdoor.clearness_floor,
+        )
+    except Exception:
+        log.exception("[snapshot-builder] outdoor correction failed; using raw")
+        return raw_temp

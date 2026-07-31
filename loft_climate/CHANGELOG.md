@@ -1,5 +1,24 @@
 # Changelog
 
+## 0.20.0
+
+- Outdoor SwitchBot sensor now bias-corrected before the rules see it.
+  The sensor overshoots by up to +8°C on sunny mornings when direct sun
+  hits its casing; the app subtracts an hour-of-day bias curve scaled
+  by current cloud cover. Overnight microclimate offset (~+1.5°C) is
+  preserved as real. This unblocks morning cross-vent recommendations
+  that were previously silenced by the inflated reading.
+- Bias curve auto-refits weekly (or on first startup) by joining
+  SwitchBot history from HA Recorder with Met.no history from the local
+  weather_cache. New "Outdoor sensor calibration" card on the Config
+  page shows the current curve as a per-hour bar chart, when it was
+  last fitted, and a "Recalibrate now" button that forces a refit.
+- New endpoints: `GET /api/outdoor/bias` returns the fitted curve +
+  correction settings, `POST /api/outdoor/bias` triggers a refit.
+- Backwards-compat: correction defaults to on. Set
+  `outdoor.correction = sensor_only` in config to opt out and use the
+  raw sensor reading.
+
 ## 0.19.0
 
 - New `/api/weather/history?days=N` endpoint returns every cached Met.no

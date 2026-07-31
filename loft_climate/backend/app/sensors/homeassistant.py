@@ -16,6 +16,7 @@ import logging
 from datetime import datetime, timezone
 from typing import Any
 
+import httpx
 from websockets.asyncio.client import connect as ws_connect
 from websockets.exceptions import ConnectionClosed
 
@@ -70,6 +71,61 @@ class HAClient:
                 await self._task
             except (asyncio.CancelledError, Exception):
                 pass
+
+    async def history_period(
+        self,
+        entity_id: str,
+        start: datetime,
+        end: datetime,
+        timeout_s: float = 20.0,
+    ) -> list[tuple[datetime, float]]:
+        """Fetch numeric state history for one entity from HA's REST API.
+
+        Returns a list of (timestamp, value) tuples, oldest first, with any
+        non-numeric states (``unavailable``, ``unknown``) filtered out. Used
+        by the outdoor sensor calibrator to pull weeks of readings. Uses
+        ``minimal_response`` so the response is small even for large windows
+        (~145 kB for 30 days of a sensor updating every few minutes).
+
+        Raises httpx.HTTPError on transport failure; caller handles.
+        """
+        base = self.base_url.rstrip("/")
+        url = (
+            f"{base}/api/history/period/{start.isoformat()}"
+            f"?end_time={end.isoformat()}"
+            f"&filter_entity_id={entity_id}"
+            "&minimal_response"
+        )
+        headers = {
+            "Authorization": f"Bearer {self.token}",
+            "Content-Type": "application/json",
+        }
+        async with httpx.AsyncClient(timeout=timeout_s) as http:
+            resp = await http.get(url, headers=headers)
+            resp.raise_for_status()
+            data = resp.json()
+        # HA returns a list of series (one per entity). We asked for one.
+        if not data or not isinstance(data, list) or not data[0]:
+            return []
+        series = data[0]
+        out: list[tuple[datetime, float]] = []
+        for point in series:
+            state = point.get("state")
+            if state in (None, "unavailable", "unknown", ""):
+                continue
+            try:
+                value = float(state)
+            except (TypeError, ValueError):
+                continue
+            ts_raw = point.get("last_changed") or point.get("last_updated")
+            if not ts_raw:
+                continue
+            try:
+                ts = datetime.fromisoformat(ts_raw.replace("Z", "+00:00"))
+            except ValueError:
+                continue
+            out.append((ts, value))
+        return out
 
     async def _run(self) -> None:
         backoff = 1.0

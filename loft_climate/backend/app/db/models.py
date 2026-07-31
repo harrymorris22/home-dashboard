@@ -83,6 +83,27 @@ class Sunshine(Base):
     source: Mapped[str] = mapped_column(String(32), nullable=False, default="manual")
 
 
+class OutdoorBiasCalibration(Base):
+    """Fitted hourly bias curve for the SwitchBot outdoor sensor.
+
+    One row per calibration run. The latest row is the active curve. Older
+    rows are kept for auditing (they compress to <200 bytes each so retention
+    is essentially free). ``bias_by_hour_json`` is a JSON array of 24 floats,
+    one per hour-of-day BST (0=00:00, 23=23:00). ``sample_counts_json`` is
+    the parallel array of how many hourly samples went into each mean —
+    useful for detecting hours where the fit is unreliable.
+    """
+    __tablename__ = "outdoor_bias_calibration"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    fitted_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), index=True, nullable=False
+    )
+    days_window: Mapped[int] = mapped_column(Integer, nullable=False)
+    bias_by_hour_json: Mapped[str] = mapped_column(Text, nullable=False)
+    sample_counts_json: Mapped[str] = mapped_column(Text, nullable=False)
+
+
 class PushSubscription(Base):
     """Web Push subscription. One row per device that opted in.
 

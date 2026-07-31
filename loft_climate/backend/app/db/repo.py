@@ -8,6 +8,7 @@ from sqlalchemy.orm import Session
 
 from app.db.models import (
     ActuatorState,
+    OutdoorBiasCalibration,
     Reading,
     RecommendationLog,
     Sunshine,
@@ -124,6 +125,24 @@ def weather_rows_range(
 
 
 def insert_weather(session: Session, row: WeatherCache) -> int:
+    session.add(row)
+    session.flush()
+    return row.id
+
+
+def latest_outdoor_calibration(session: Session) -> OutdoorBiasCalibration | None:
+    """Most recent fitted bias curve. None until the first calibration runs."""
+    stmt = (
+        select(OutdoorBiasCalibration)
+        .order_by(OutdoorBiasCalibration.fitted_at.desc())
+        .limit(1)
+    )
+    return session.scalars(stmt).first()
+
+
+def insert_outdoor_calibration(
+    session: Session, row: OutdoorBiasCalibration
+) -> int:
     session.add(row)
     session.flush()
     return row.id
