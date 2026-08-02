@@ -15,6 +15,7 @@ import json
 import logging
 from datetime import datetime, timezone
 from typing import Any
+from urllib.parse import quote, urlencode
 
 import httpx
 from websockets.asyncio.client import connect as ws_connect
@@ -89,13 +90,25 @@ class HAClient:
 
         Raises httpx.HTTPError on transport failure; caller handles.
         """
+        # v0.20.2: normalise timestamps to a `Z`-suffixed UTC form and
+        # URL-encode the path segment. The `+` in `+00:00` is otherwise
+        # decoded as a space by HA's query-string parser (WHATWG rule)
+        # and both `end_time` parsing and the path routing 400 out.
+        # `urlencode` handles the query-string values; `quote` handles
+        # the path segment.
+        def _iso_utc_z(ts: datetime) -> str:
+            aware = ts if ts.tzinfo else ts.replace(tzinfo=timezone.utc)
+            return aware.astimezone(timezone.utc).strftime("%Y-%m-%dT%H:%M:%S") + "Z"
+
         base = self.base_url.rstrip("/")
-        url = (
-            f"{base}/api/history/period/{start.isoformat()}"
-            f"?end_time={end.isoformat()}"
-            f"&filter_entity_id={entity_id}"
-            "&minimal_response"
-        )
+        start_iso = _iso_utc_z(start)
+        end_iso = _iso_utc_z(end)
+        query = urlencode({
+            "end_time": end_iso,
+            "filter_entity_id": entity_id,
+            "minimal_response": "",
+        })
+        url = f"{base}/api/history/period/{quote(start_iso, safe='')}?{query}"
         headers = {
             "Authorization": f"Bearer {self.token}",
             "Content-Type": "application/json",

@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.20.2
+
+- Fix: outdoor sensor calibration was failing with HA 400 Bad Request
+  every time (weekly tick and Recalibrate button both). The HA
+  history REST URL contained raw `+00:00` timezone suffixes; HA's
+  query-string parser decoded `+` as a space per WHATWG rules,
+  corrupting `end_time` and the path timestamp. Fix: normalise
+  timestamps to Z-suffixed UTC and URL-encode the path segment.
+  Frontend "No overlapping history yet" message will now go away
+  as soon as the first successful fit persists.
+
 ## 0.20.1
 
 - Fix: clicking "Recalibrate now" on the Config page blanked the whole
