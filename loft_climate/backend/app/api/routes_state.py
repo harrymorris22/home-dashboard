@@ -44,6 +44,25 @@ async def get_state(request: Request, session: Session = Depends(get_session)):
             "is_daylight": snap.sun.is_daylight,
         },
         "sunshine": {"lux": snap.sw_lux} if snap.sw_lux is not None else None,
+        # v0.21: outdoor breakdown — three temperatures side-by-side so the
+        # dashboard can show what each source says.
+        #   effective_c   → the value the rules see (== weather.temp_c)
+        #   raw_c         → SwitchBot sensor before any correction (None when
+        #                   no outdoor sensor is configured)
+        #   forecast_c    → Met.no's own reading (None when weather is offline)
+        #   delta_c       → effective_c − raw_c, the correction applied
+        "outdoor": {
+            "effective_c": (
+                snap.weather.temp_c if snap.weather is not None else None
+            ),
+            "raw_c": snap.outdoor_raw_c,
+            "forecast_c": snap.outdoor_forecast_c,
+            "delta_c": (
+                snap.weather.temp_c - snap.outdoor_raw_c
+                if snap.weather is not None and snap.outdoor_raw_c is not None
+                else None
+            ),
+        },
         "current_state": {
             "blinds": dict(snap.current_blind),
             "windows": dict(snap.current_window),

@@ -55,6 +55,23 @@ def test_state_endpoint_returns_recommendations_with_no_weather():
     assert any("offline" in p.lower() for p in rec["prompts"])
 
 
+def test_state_outdoor_block_present_when_offline():
+    """v0.21: /api/state always includes the outdoor breakdown, even when
+    Met.no is offline and no sensor is configured. All four fields must be
+    present so the frontend can render None safely."""
+    _seed_readings()
+    client = TestClient(create_app())
+    body = client.get("/api/state").json()
+    assert "outdoor" in body
+    for key in ("effective_c", "raw_c", "forecast_c", "delta_c"):
+        assert key in body["outdoor"], f"outdoor missing {key!r}"
+    # In the offline test env everything should be None.
+    assert body["outdoor"]["effective_c"] is None
+    assert body["outdoor"]["raw_c"] is None
+    assert body["outdoor"]["forecast_c"] is None
+    assert body["outdoor"]["delta_c"] is None
+
+
 def test_config_get_and_put_roundtrip():
     app = create_app()
     client = TestClient(app)

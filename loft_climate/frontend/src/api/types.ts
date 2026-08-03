@@ -84,12 +84,24 @@ export type NextAction = {
   reasoning: string;
 };
 
+export type OutdoorView = {
+  // The value the rules see. Same as weather.temp_c; duplicated for clarity.
+  effective_c: number | null;
+  // Raw SwitchBot reading before bias correction. Null when no outdoor sensor.
+  raw_c: number | null;
+  // Met.no's reading before any sensor override. Null when weather offline.
+  forecast_c: number | null;
+  // effective_c − raw_c. How much the bias correction pulled the reading.
+  delta_c: number | null;
+};
+
 export type StateResponse = {
   ts: string;
   sensors: Record<string, SensorReading>;
   weather: WeatherView | null;
   sun: SunView;
   sunshine: SunshineView | null;
+  outdoor: OutdoorView;
   current_state: CurrentState;
   recommendations: Recommendations;
   next_actions: NextAction[];

@@ -27,7 +27,7 @@ export function Dashboard() {
       <BlindStateControl />
       <WindowStateControl />
       <NextActionsPanel actions={data.next_actions} />
-      <WeatherStrip weather={data.weather} sun={data.sun} sunshine={data.sunshine} />
+      <WeatherStrip weather={data.weather} outdoor={data.outdoor} sun={data.sun} sunshine={data.sunshine} />
       <ZoneGrid sensors={data.sensors} recommendations={data.recommendations} />
       <RecommendationsPanel rec={data.recommendations} />
       <Card className="text-xs text-secondary text-center">

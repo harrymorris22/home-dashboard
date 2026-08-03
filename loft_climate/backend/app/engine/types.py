@@ -28,6 +28,13 @@ class Snapshot:
     sw_lux: float | None = None  # single SW-glazing light reading (Phase 2: Aqara T1)
     current_blind: dict[str, int] = field(default_factory=dict)  # group → 0..100
     current_window: dict[str, bool] = field(default_factory=dict)  # zone → True/False
+    # v0.21: separate signals for the outdoor temperature. weather.temp_c
+    # is the *effective* value the rules use (raw sensor after bias
+    # correction, OR raw Met.no when no sensor override applies). These
+    # two fields expose the underlying inputs so the UI can show
+    # "sensor 32.4 · met 24.0 · used 26.8" side-by-side.
+    outdoor_raw_c: float | None = None       # SwitchBot raw reading, no correction
+    outdoor_forecast_c: float | None = None  # Met.no reading, no override
 
 
 # --- Facts (output of classifier) -----------------------------------------------------------

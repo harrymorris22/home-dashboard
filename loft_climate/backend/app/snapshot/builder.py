@@ -48,16 +48,21 @@ class SnapshotBuilder:
         now = now or datetime.now(tz=timezone.utc)
         zones = self.sensor_source.latest()
         weather = await weather_cache.get_or_fetch(self.session, self.cfg)
+        # Preserve the raw Met.no reading before any override so the UI can
+        # display it alongside the sensor reading. None when weather is
+        # offline (rules already handle that path).
+        outdoor_forecast_c: float | None = weather.temp_c if weather else None
+        outdoor_raw_c: float | None = None
         # Override OWM temp/humidity with on-building reading when available.
         if weather is not None and self.outdoor_source is not None:
             outdoor = self.outdoor_source.latest()
             if outdoor is not None:
-                raw_temp = outdoor.temp_c
+                outdoor_raw_c = outdoor.temp_c
                 # v0.20: strip the solar-heating artifact from the SwitchBot
                 # reading before feeding it to the rules. Falls through to
                 # raw when correction is disabled or no calibration exists.
                 effective_temp = _apply_correction(
-                    self.session, self.cfg, raw_temp, weather.cloud_cover_pct, now
+                    self.session, self.cfg, outdoor_raw_c, weather.cloud_cover_pct, now
                 )
                 feels = apparent_temp_outdoor(
                     effective_temp,
@@ -94,6 +99,8 @@ class SnapshotBuilder:
             sw_lux=sw_lux,
             current_blind=current_blind,
             current_window=current_window,
+            outdoor_raw_c=outdoor_raw_c,
+            outdoor_forecast_c=outdoor_forecast_c,
         )
 
 

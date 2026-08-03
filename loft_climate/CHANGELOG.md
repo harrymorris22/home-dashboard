@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.21.0
+
+- Outdoor breakdown in the WeatherStrip. Alongside the main "Outdoor
+  X°C feels Y°C" chip, when the SwitchBot override is active you now
+  see a compact "Sensor · Met · Used (±delta)" row so all three
+  temperatures are visible at once. The correction is no longer
+  invisible.
+- New `/api/state.outdoor` block returns `{raw_c, forecast_c,
+  effective_c, delta_c}` so any downstream tool (this UI, a
+  notebook, HA) can pull all three signals from one call.
+
 ## 0.20.2
 
 - Fix: outdoor sensor calibration was failing with HA 400 Bad Request
